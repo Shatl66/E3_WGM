@@ -1,0 +1,136 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{80ED7F69-FCA1-46BF-9DD0-263B6271D24F}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <RootNamespace>E3_WGM</RootNamespace>
+    <AssemblyName>E3_WGM</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Aga.Controls">
+      <HintPath>..\..\AgaControls\Aga.Controls.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Deployment" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="E3CommonControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="E3CommonControl.Designer.cs">
+      <DependentUpon>E3CommonControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="E3DocListBrowser.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="E3DocListBrowser.Designer.cs">
+      <DependentUpon>E3DocListBrowser.cs</DependentUpon>
+    </Compile>
+    <Compile Include="E3ProjectBrowser.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="E3ProjectBrowser.Designer.cs">
+      <DependentUpon>E3ProjectBrowser.cs</DependentUpon>
+    </Compile>
+    <Compile Include="E3StructureBrowser.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="E3StructureBrowser.Designer.cs">
+      <DependentUpon>E3StructureBrowser.cs</DependentUpon>
+    </Compile>
+    <Compile Include="E3WGMForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="E3WGMForm.Designer.cs">
+      <DependentUpon>E3WGMForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="E3CommonControl.resx">
+      <DependentUpon>E3CommonControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="E3DocListBrowser.resx">
+      <DependentUpon>E3DocListBrowser.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="E3ProjectBrowser.resx">
+      <DependentUpon>E3ProjectBrowser.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="E3StructureBrowser.resx">
+      <DependentUpon>E3StructureBrowser.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="E3WGMForm.resx">
+      <DependentUpon>E3WGMForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <COMReference Include="e3">
+      <Guid>{59B53E00-679B-41ED-9D11-766E27B6A7A4}</Guid>
+      <VersionMajor>22</VersionMajor>
+      <VersionMinor>51</VersionMinor>
+      <Lcid>0</Lcid>
+      <WrapperTool>tlbimp</WrapperTool>
+      <Isolated>False</Isolated>
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+    </COMReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="images\" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>
