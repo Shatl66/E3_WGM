@@ -1,0 +1,13 @@
+{
+  "partNumber": "docname",
+  "docType": ".DOCUMENT_TYPE",
+  "docFormat": "sheet_format",
+  "docTypeSuff": "doccode",
+  "atrBomRs": "PartAttribute",
+  "lineNumber": "SumBomPos",
+  "additionalPart": "AdditionalPart",
+  "dlina": "dlina",
+  "length": "Length",
+  "cuttingLength": "CuttingLength"
+
+}

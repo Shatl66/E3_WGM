@@ -28,7 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.treeViewAdv1 = new Aga.Controls.Tree.TreeViewAdv();
+            this._treeView = new Aga.Controls.Tree.TreeViewAdv();
             this.treeColumnNumber = new Aga.Controls.Tree.TreeColumn();
             this.treeColumnName = new Aga.Controls.Tree.TreeColumn();
             this.treeColumnEntry = new Aga.Controls.Tree.TreeColumn();
@@ -39,8 +39,6 @@
             this.treeColumnRefDes = new Aga.Controls.Tree.TreeColumn();
             this.nodeCheckBox1 = new Aga.Controls.Tree.NodeControls.NodeTextBox();
             this._icon = new Aga.Controls.Tree.NodeControls.NodeIcon();
-            this.panel1 = new System.Windows.Forms.Panel();
-            this.button1 = new System.Windows.Forms.Button();
             this._number = new Aga.Controls.Tree.NodeControls.NodeTextBox();
             this._name = new Aga.Controls.Tree.NodeControls.NodeTextBox();
             this._entry = new Aga.Controls.Tree.NodeControls.NodeTextBox();
@@ -49,47 +47,49 @@
             this._unit = new Aga.Controls.Tree.NodeControls.NodeTextBox();
             this._lineNumber = new Aga.Controls.Tree.NodeControls.NodeTextBox();
             this._refDes = new Aga.Controls.Tree.NodeControls.NodeTextBox();
+            this.panel1 = new System.Windows.Forms.Panel();
+            this.button1 = new System.Windows.Forms.Button();
             this.panel1.SuspendLayout();
             this.SuspendLayout();
             // 
-            // treeViewAdv1
+            // _treeView
             // 
-            this.treeViewAdv1.AllowColumnReorder = true;
-            this.treeViewAdv1.AutoRowHeight = true;
-            this.treeViewAdv1.BackColor = System.Drawing.SystemColors.Window;
-            this.treeViewAdv1.Columns.Add(this.treeColumnNumber);
-            this.treeViewAdv1.Columns.Add(this.treeColumnName);
-            this.treeViewAdv1.Columns.Add(this.treeColumnEntry);
-            this.treeViewAdv1.Columns.Add(this.treeColumnBomRS);
-            this.treeViewAdv1.Columns.Add(this.treeColumnAmount);
-            this.treeViewAdv1.Columns.Add(this.treeColumnUnit);
-            this.treeViewAdv1.Columns.Add(this.treeColumnLineNumber);
-            this.treeViewAdv1.Columns.Add(this.treeColumnRefDes);
-            this.treeViewAdv1.DefaultToolTipProvider = null;
-            this.treeViewAdv1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.treeViewAdv1.DragDropMarkColor = System.Drawing.Color.Black;
-            this.treeViewAdv1.FullRowSelect = true;
-            this.treeViewAdv1.LineColor = System.Drawing.SystemColors.ControlDark;
-            this.treeViewAdv1.LoadOnDemand = true;
-            this.treeViewAdv1.Location = new System.Drawing.Point(0, 40);
-            this.treeViewAdv1.Model = null;
-            this.treeViewAdv1.Name = "treeViewAdv1";
-            this.treeViewAdv1.NodeControls.Add(this.nodeCheckBox1);
-            this.treeViewAdv1.NodeControls.Add(this._icon);
-            this.treeViewAdv1.NodeControls.Add(this._number);
-            this.treeViewAdv1.NodeControls.Add(this._name);
-            this.treeViewAdv1.NodeControls.Add(this._entry);
-            this.treeViewAdv1.NodeControls.Add(this._bomRS);
-            this.treeViewAdv1.NodeControls.Add(this._amount);
-            this.treeViewAdv1.NodeControls.Add(this._unit);
-            this.treeViewAdv1.NodeControls.Add(this._lineNumber);
-            this.treeViewAdv1.NodeControls.Add(this._refDes);
-            this.treeViewAdv1.SelectedNode = null;
-            this.treeViewAdv1.ShowNodeToolTips = true;
-            this.treeViewAdv1.Size = new System.Drawing.Size(573, 129);
-            this.treeViewAdv1.TabIndex = 1;
-            this.treeViewAdv1.Text = "treeViewAdv1";
-            this.treeViewAdv1.UseColumns = true;
+            this._treeView.AllowColumnReorder = true;
+            this._treeView.AutoRowHeight = true;
+            this._treeView.BackColor = System.Drawing.SystemColors.Window;
+            this._treeView.Columns.Add(this.treeColumnNumber);
+            this._treeView.Columns.Add(this.treeColumnName);
+            this._treeView.Columns.Add(this.treeColumnEntry);
+            this._treeView.Columns.Add(this.treeColumnBomRS);
+            this._treeView.Columns.Add(this.treeColumnAmount);
+            this._treeView.Columns.Add(this.treeColumnUnit);
+            this._treeView.Columns.Add(this.treeColumnLineNumber);
+            this._treeView.Columns.Add(this.treeColumnRefDes);
+            this._treeView.DefaultToolTipProvider = null;
+            this._treeView.Dock = System.Windows.Forms.DockStyle.Fill;
+            this._treeView.DragDropMarkColor = System.Drawing.Color.Black;
+            this._treeView.FullRowSelect = true;
+            this._treeView.LineColor = System.Drawing.SystemColors.ControlDark;
+            this._treeView.LoadOnDemand = true;
+            this._treeView.Location = new System.Drawing.Point(0, 40);
+            this._treeView.Model = null;
+            this._treeView.Name = "_treeView";
+            this._treeView.NodeControls.Add(this.nodeCheckBox1);
+            this._treeView.NodeControls.Add(this._icon);
+            this._treeView.NodeControls.Add(this._number);
+            this._treeView.NodeControls.Add(this._name);
+            this._treeView.NodeControls.Add(this._entry);
+            this._treeView.NodeControls.Add(this._bomRS);
+            this._treeView.NodeControls.Add(this._amount);
+            this._treeView.NodeControls.Add(this._unit);
+            this._treeView.NodeControls.Add(this._lineNumber);
+            this._treeView.NodeControls.Add(this._refDes);
+            this._treeView.SelectedNode = null;
+            this._treeView.ShowNodeToolTips = true;
+            this._treeView.Size = new System.Drawing.Size(573, 129);
+            this._treeView.TabIndex = 1;
+            this._treeView.Text = "treeViewAdv1";
+            this._treeView.UseColumns = true;
             // 
             // treeColumnNumber
             // 
@@ -158,26 +158,6 @@
             this._icon.ParentColumn = this.treeColumnNumber;
             this._icon.ScaleMode = Aga.Controls.Tree.ImageScaleMode.Clip;
             // 
-            // panel1
-            // 
-            this.panel1.Controls.Add(this.button1);
-            this.panel1.Dock = System.Windows.Forms.DockStyle.Top;
-            this.panel1.Location = new System.Drawing.Point(0, 0);
-            this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(573, 40);
-            this.panel1.TabIndex = 2;
-            // 
-            // button1
-            // 
-            this.button1.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
-            this.button1.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.button1.Location = new System.Drawing.Point(221, 7);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(100, 25);
-            this.button1.TabIndex = 2;
-            this.button1.Text = "Выгрузить";
-            this.button1.UseVisualStyleBackColor = true;
-            // 
             // _number
             // 
             this._number.DataPropertyName = "NUMBER";
@@ -235,11 +215,31 @@
             this._refDes.LeftMargin = 3;
             this._refDes.ParentColumn = this.treeColumnRefDes;
             // 
+            // panel1
+            // 
+            this.panel1.Controls.Add(this.button1);
+            this.panel1.Dock = System.Windows.Forms.DockStyle.Top;
+            this.panel1.Location = new System.Drawing.Point(0, 0);
+            this.panel1.Name = "panel1";
+            this.panel1.Size = new System.Drawing.Size(573, 40);
+            this.panel1.TabIndex = 2;
+            // 
+            // button1
+            // 
+            this.button1.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
+            this.button1.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.button1.Location = new System.Drawing.Point(221, 7);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(100, 25);
+            this.button1.TabIndex = 2;
+            this.button1.Text = "Выгрузить";
+            this.button1.UseVisualStyleBackColor = true;
+            // 
             // E3StructureBrowser
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.Controls.Add(this.treeViewAdv1);
+            this.Controls.Add(this._treeView);
             this.Controls.Add(this.panel1);
             this.Name = "E3StructureBrowser";
             this.Size = new System.Drawing.Size(573, 169);
@@ -249,7 +249,7 @@
         }
 
         #endregion
-        private Aga.Controls.Tree.TreeViewAdv treeViewAdv1;
+        private Aga.Controls.Tree.TreeViewAdv _treeView;
         private Aga.Controls.Tree.TreeColumn treeColumnNumber;
         private Aga.Controls.Tree.TreeColumn treeColumnName;
         private Aga.Controls.Tree.TreeColumn treeColumnEntry;
