@@ -41,6 +41,7 @@ namespace E3_WGM
         {
             this.number = number;
             this.name = name;
+            ATR_BOM_RS = BomRSValues.getBomRSValue((int)BomRSEnum.ASSEMBLY); // TODO А если Комплект ?
         }
 
         public E3Assembly()
@@ -285,6 +286,16 @@ namespace E3_WGM
                     usage.addParentID(parentIDs);
                 }
             }
+        }
+
+        internal void AddUsage(Part part)
+        {
+            E3PartUsage usage;
+
+            usage = new E3PartUsage(part);
+            usage.AddAmount();
+            _usages.Add(usage);
+            _usages = _usages.OrderBy(o => o.number).ToList();
         }
 
         internal void AddDescribe(string value, string type)

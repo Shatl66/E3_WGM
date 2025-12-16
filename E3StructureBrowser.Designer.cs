@@ -68,6 +68,7 @@
             this._treeView.DefaultToolTipProvider = null;
             this._treeView.Dock = System.Windows.Forms.DockStyle.Fill;
             this._treeView.DragDropMarkColor = System.Drawing.Color.Black;
+            this._treeView.Font = new System.Drawing.Font("Tahoma", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this._treeView.FullRowSelect = true;
             this._treeView.LineColor = System.Drawing.SystemColors.ControlDark;
             this._treeView.LoadOnDemand = true;
@@ -96,28 +97,28 @@
             this.treeColumnNumber.Header = "Обозначение";
             this.treeColumnNumber.SortOrder = System.Windows.Forms.SortOrder.None;
             this.treeColumnNumber.TooltipText = "Number";
-            this.treeColumnNumber.Width = 250;
+            this.treeColumnNumber.Width = 200;
             // 
             // treeColumnName
             // 
             this.treeColumnName.Header = "Наименование";
             this.treeColumnName.SortOrder = System.Windows.Forms.SortOrder.None;
             this.treeColumnName.TooltipText = null;
-            this.treeColumnName.Width = 100;
+            this.treeColumnName.Width = 250;
             // 
             // treeColumnEntry
             // 
             this.treeColumnEntry.Header = "Имя ??";
             this.treeColumnEntry.SortOrder = System.Windows.Forms.SortOrder.None;
             this.treeColumnEntry.TooltipText = null;
-            this.treeColumnEntry.Width = 150;
+            this.treeColumnEntry.Width = 100;
             // 
             // treeColumnBomRS
             // 
             this.treeColumnBomRS.Header = "Раздел спецификации";
             this.treeColumnBomRS.SortOrder = System.Windows.Forms.SortOrder.None;
             this.treeColumnBomRS.TooltipText = null;
-            this.treeColumnBomRS.Width = 100;
+            this.treeColumnBomRS.Width = 170;
             // 
             // treeColumnAmount
             // 
@@ -136,6 +137,7 @@
             this.treeColumnLineNumber.Header = "Позиция";
             this.treeColumnLineNumber.SortOrder = System.Windows.Forms.SortOrder.None;
             this.treeColumnLineNumber.TooltipText = null;
+            this.treeColumnLineNumber.Width = 70;
             // 
             // treeColumnRefDes
             // 
@@ -227,7 +229,7 @@
             // button1
             // 
             this.button1.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
-            this.button1.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.button1.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.button1.Location = new System.Drawing.Point(221, 7);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(100, 25);

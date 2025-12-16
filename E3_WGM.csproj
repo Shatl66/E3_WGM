@@ -83,7 +83,6 @@
     <Compile Include="E3ProjectBrowser.Designer.cs">
       <DependentUpon>E3ProjectBrowser.cs</DependentUpon>
     </Compile>
-    <Compile Include="E3ProjectDocument.cs" />
     <Compile Include="E3StructureBrowser.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -159,11 +158,8 @@
       <EmbedInteropTypes>True</EmbedInteropTypes>
     </COMReference>
   </ItemGroup>
-  <ItemGroup />
   <ItemGroup>
-    <None Include="Resources\e3part.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+    <Content Include="Resources\e3part.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

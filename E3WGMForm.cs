@@ -75,7 +75,7 @@ namespace E3_WGM
         {
             E3Project umens_e3project = new E3Project("Temp_Number", "Temp_Name");
             E3StructureTreeTraverser traverser = new E3StructureTreeTraverser( umens_e3project);
-            traverser.FindAllWTParts();
+            traverser.FindAllWTPartsFromSelectedFolder();
             traverser.DisconnectFromE3Series();            
 
             return umens_e3project;
@@ -98,5 +98,22 @@ namespace E3_WGM
            // DisconnectFromE3Series();
         }
 
+        private void tabControl1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            // Если выбрана вкладка "Состав"
+            if (tabControl1.SelectedTab == tabPageStructureBrowser)
+            {
+                e3StructureBrowser1.Refresh();
+            }
+            else if (tabControl1.SelectedTab == tabPageProject)
+            {
+               // e3ProjectBrowser1.Refresh(); // если есть такой метод
+            }
+            else if (tabControl1.SelectedTab == tabPageDocListBrowser)
+            {
+               // e3DocListBrowser1.Refresh(); // если есть такой метод
+            }
+
+        }
     }
 }

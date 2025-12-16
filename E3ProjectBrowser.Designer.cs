@@ -38,6 +38,7 @@
             this.StructureBrowserPanel.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.StructureBrowserPanel.Controls.Add(this.button1);
             this.StructureBrowserPanel.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.StructureBrowserPanel.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.StructureBrowserPanel.Location = new System.Drawing.Point(0, 0);
             this.StructureBrowserPanel.Name = "StructureBrowserPanel";
             this.StructureBrowserPanel.Size = new System.Drawing.Size(618, 174);
@@ -46,7 +47,7 @@
             // button1
             // 
             this.button1.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
-            this.button1.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.button1.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.button1.Location = new System.Drawing.Point(31, 9);
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(130, 40);

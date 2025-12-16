@@ -18,6 +18,7 @@ namespace E3_WGM
         private e3StructureNode structureNode;
         private e3Tree tree;
         private E3Project umens_e3project;
+        private int k = 1; // временно, удалить !
 
         public E3StructureTreeTraverser(E3Project umens_e3project)
         {
@@ -28,7 +29,7 @@ namespace E3_WGM
             tree = job.CreateTreeObject(); // это пока прото пустышка заданного типа
         }
 
-        public void FindAllWTParts()
+        public void FindAllWTPartsFromSelectedFolder()
         {
             int rootNodeId = 0;
             int treeId = 0;
@@ -64,23 +65,49 @@ namespace E3_WGM
                 }
             }
 
-            FindWTPartsRecursive( rootNodeId);
+            FindWTPartsRecursive( rootNodeId, null);
         }
 
-        private void FindWTPartsRecursive(int nodeId)
+        private void FindWTPartsRecursive(int nodeId, E3Assembly parentAssembly)
         {
+            String numberPart;
+            String namePart; 
+            E3Assembly assembly = null;
+            E3Part part = null;            
+
             structureNode.SetId(nodeId);
 
             string typeName = structureNode.GetTypeName();
             string internName = structureNode.GetInternalName();
 
-            if (typeName == "<Assignment>" || typeName == "<Project>" || typeName == "SubProj") // У спапки со схемами - .DOCUMENT_TYPE
+            if (typeName == "<Assignment>" || typeName == "<Project>" || typeName == "SubProj") // У папки со схемами - .DOCUMENT_TYPE
             {
-                string nodeName = structureNode.GetName();
+                numberPart = structureNode.GetName();
                 bool hasAttribute = structureNode.HasAttribute("Naimen_izdel") == 1 ? true : false;
-                string attributeValue = hasAttribute ? structureNode.GetAttributeValue("Naimen_izdel") : "Наименование пока не известно";
+                namePart = hasAttribute ? structureNode.GetAttributeValue("Naimen_izdel") : "Наименование пока не известно";
 
-                app.PutInfo(0, $"Найден узел: {nodeName} {attributeValue}"); // тоже самое, что и "Найден WTPart: '" + nodeName + "' (ID: " + nodeId + ")"
+                app.PutInfo(0, $"Найден узел: {numberPart} {namePart}"); // тоже самое, что и "Найден WTPart: '" + nodeName + "' (ID: " + nodeId + ")"
+
+                if (parentAssembly == null & typeName == "<Project>")
+                {
+                    // Настраиваем наш объект umens_e3project на работу с данными именно от всего проекта Е3. т.к. именно сам проект выбран в дереве листов Е3
+
+                    // {} Определить имя и обозначение для СЧ из проекта E3
+                    assembly = umens_e3project;
+                }
+                else if (parentAssembly == null)
+                {
+                    // Настраиваем наш объект umens_e3project на работу с данными от выбранной папки в дереве листов Е3
+                    umens_e3project.number = numberPart;
+                    umens_e3project.name = namePart;
+                    assembly = umens_e3project;
+                }
+                else if(parentAssembly != null)
+                {
+                    assembly = new E3Assembly(numberPart, namePart);
+                    umens_e3project.Parts.Add(assembly); // накапливаем все Part-ы по 1 разу
+                    parentAssembly.AddUsage(assembly);
+                }
 
 
                 // Получаем дочерние узлы
@@ -90,12 +117,20 @@ namespace E3_WGM
                 for (int i = 1; i <= childCount; i++)
                 {
                     int childNodeId = childNodeIds[i];
-                    FindWTPartsRecursive(childNodeId);
+                    FindWTPartsRecursive(childNodeId, assembly);
                 }
             }
             else
             {
                 app.PutInfo(0, "Рассчитываем содержимое узла из схем");
+
+                // временно !
+                part = new E3Part();
+                part.number = "0000" + k++;
+                part.name = "Temp Part" + k++;
+
+                umens_e3project.Parts.Add( part); // накапливаем все Part-ы по 1 разу
+                parentAssembly.AddUsage( part);
             }
         }
 

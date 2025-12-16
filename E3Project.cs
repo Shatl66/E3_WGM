@@ -35,6 +35,8 @@ namespace E3_WGM
             get { return _parts; }
             set { }
         }
+        
+        /*
         [DataMember]
         private List<Document> _docs = new List<Document>();
         internal List<Document> Docs
@@ -42,6 +44,8 @@ namespace E3_WGM
             get { return _docs; }
             set { }
         }
+        */
+        
         private e3Job job;
 
         public e3Job getJob()
@@ -62,6 +66,7 @@ namespace E3_WGM
                 getJobAttributes();
             }
 
+            /*
             AddProjectDoc();
             if (!String.IsNullOrEmpty(oidMaster)
                && !String.IsNullOrEmpty(getE3ProjectDocument().oidMaster))
@@ -69,8 +74,10 @@ namespace E3_WGM
                 ReadDoc();
                 ReadPart();
             }
+            */
         }
 
+        /*
         public void AddProjectDoc()
         {
             String E3prjOidMaster = "";
@@ -113,6 +120,7 @@ namespace E3_WGM
                 AddDescribe(e3ProjectDocument.number, E3PartDescribe.TypeNumber);
             }
         }
+        
 
         internal void merge(E3Project project2)
         {
@@ -169,6 +177,7 @@ namespace E3_WGM
 
             }
         }
+        */
 
         private void updateLineNumber(E3Assembly localAssebly, E3Assembly wchAssebly)
         {
@@ -245,6 +254,7 @@ namespace E3_WGM
             }
         }
 
+/*
         public void updateJobAttribute(E3Project project2, E3ProjectDocument projectDoc)
         {
             this.wchcheckout = project2.wchcheckout;
@@ -265,6 +275,8 @@ namespace E3_WGM
             job.SetAttributeValue("WCH_e3prj_number", projectDoc.number);
             job.SetAttributeValue("WCH_e3prj_name", projectDoc.name);
         }
+*/
+
 
         internal void AddUsage(Part part)
         {
@@ -627,13 +639,13 @@ namespace E3_WGM
 
                             assembly.AddUsage(dev, part);
 
-                            addAdditionalParts(dev, assembly);
+//                            addAdditionalParts(dev, assembly);
                         }
                         else
                         {
                             AddUsage(dev, part);
 
-                            addAdditionalParts(dev, this);
+//                          addAdditionalParts(dev, this);
                         }
                     }
                 }
@@ -641,6 +653,7 @@ namespace E3_WGM
         }
 
 
+/*
         /// <summary>
         /// Взял с GitHub с ветки OKBTSP
         /// </summary>
@@ -762,6 +775,7 @@ namespace E3_WGM
 
             }
         }
+*/
 
 
         /*
@@ -861,6 +875,8 @@ namespace E3_WGM
         }
         */
 
+
+/*
         private void ReadDoc()
         {
             Dictionary<string, string> allDocType = new Dictionary<string, string>();
@@ -1055,9 +1071,11 @@ namespace E3_WGM
                 }
             }
         }
+*/
 
-        internal void updateDescribes(Document tempE3Doc)
-        {/*
+//        internal void updateDescribes(Document tempE3Doc)
+//        {
+        /*
             E3PartDescribe e3Desc = null;
             if (e3Desc == null && tempE3Doc.oidMaster != null && tempE3Doc.oidMaster != "")
             {
@@ -1099,7 +1117,7 @@ namespace E3_WGM
             }
 
             e3Desc.updateDescribe(tempE3Doc);*/
-        }
+ //       }
 
         internal void updateUsages(Part tempPart)
         {
@@ -1166,6 +1184,8 @@ namespace E3_WGM
             }
         }
 
+
+/*
         internal E3ProjectDocument getE3ProjectDocument()
         {
             List<Document> listE3ProjectDocument = Docs.FindAll(x => x is E3ProjectDocument);
@@ -1177,6 +1197,7 @@ namespace E3_WGM
 
             return (E3ProjectDocument)listE3ProjectDocument[0];
         }
+*/
 
         internal E3PartDescribe getE3ProjectDocumentDescribe(string type, string value)
         {
