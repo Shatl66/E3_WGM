@@ -29,7 +29,7 @@
         private void InitializeComponent()
         {
             this.panel1 = new System.Windows.Forms.Panel();
-            this.button1 = new System.Windows.Forms.Button();
+            this.buttonSynch = new System.Windows.Forms.Button();
             this.button3 = new System.Windows.Forms.Button();
             this.button2 = new System.Windows.Forms.Button();
             this.panel1.SuspendLayout();
@@ -38,7 +38,7 @@
             // panel1
             // 
             this.panel1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.panel1.Controls.Add(this.button1);
+            this.panel1.Controls.Add(this.buttonSynch);
             this.panel1.Controls.Add(this.button3);
             this.panel1.Controls.Add(this.button2);
             this.panel1.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -47,24 +47,25 @@
             this.panel1.Size = new System.Drawing.Size(740, 73);
             this.panel1.TabIndex = 0;
             // 
-            // button1
+            // buttonSynch
             // 
-            this.button1.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
-            this.button1.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.button1.Location = new System.Drawing.Point(14, 17);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(130, 40);
-            this.button1.TabIndex = 7;
-            this.button1.Text = "Синхронизация";
-            this.button1.UseVisualStyleBackColor = true;
+            this.buttonSynch.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
+            this.buttonSynch.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.buttonSynch.Location = new System.Drawing.Point(14, 17);
+            this.buttonSynch.Name = "buttonSynch";
+            this.buttonSynch.Size = new System.Drawing.Size(130, 40);
+            this.buttonSynch.TabIndex = 7;
+            this.buttonSynch.Text = "Синхронизация";
+            this.buttonSynch.UseVisualStyleBackColor = true;
+            this.buttonSynch.Click += new System.EventHandler(this.buttonSynch_Click);
             // 
             // button3
             // 
             this.button3.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
-            this.button3.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.button3.Location = new System.Drawing.Point(357, 17);
+            this.button3.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.button3.Location = new System.Drawing.Point(357, 11);
             this.button3.Name = "button3";
-            this.button3.Size = new System.Drawing.Size(130, 40);
+            this.button3.Size = new System.Drawing.Size(130, 50);
             this.button3.TabIndex = 5;
             this.button3.Text = "Сдать на хранение";
             this.button3.UseVisualStyleBackColor = true;
@@ -72,10 +73,10 @@
             // button2
             // 
             this.button2.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
-            this.button2.Font = new System.Drawing.Font("Microsoft Sans Serif", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.button2.Location = new System.Drawing.Point(208, 17);
+            this.button2.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.button2.Location = new System.Drawing.Point(208, 12);
             this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(130, 40);
+            this.button2.Size = new System.Drawing.Size(130, 50);
             this.button2.TabIndex = 4;
             this.button2.Text = "Взять на изменение";
             this.button2.UseVisualStyleBackColor = true;
@@ -97,6 +98,6 @@
         private System.Windows.Forms.Panel panel1;
         private System.Windows.Forms.Button button3;
         private System.Windows.Forms.Button button2;
-        private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.Button buttonSynch;
     }
 }

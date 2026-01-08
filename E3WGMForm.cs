@@ -18,9 +18,8 @@ namespace E3_WGM
     public partial class E3WGMForm : Form
     {
 
-        //public static e3Application app;
-        //public static e3Job job;
-        public static E3Project public_umens_e3project;
+        //public static E3Project public_umens_e3project;
+        public static E3Assembly public_umens_e3project;
         public static WindchillHTTPClient wchHTTPClient;
 
         public E3WGMForm()
@@ -69,33 +68,69 @@ namespace E3_WGM
 
             public_umens_e3project = CreateAndFillUmensE3Project();
 
+            // Подписываем E3WGMForm на событие синхронизации генерируемое кнопкой "Синхронизация"
+            e3CommonControl1.SynchronizeClicked += E3CommonControl1_SynchronizeClicked;
+
         }
 
-        private E3Project CreateAndFillUmensE3Project()
+
+        public E3Assembly CreateAndFillUmensE3Project()
         {
-            E3Project umens_e3project = new E3Project("Temp_Number", "Temp_Name");
-            E3StructureTreeTraverser traverser = new E3StructureTreeTraverser( umens_e3project);
+            //E3Project umens_e3project = new E3Project("Temp_Number", "Temp_Name");
+            E3Assembly umens_e3project = new E3Assembly("Temp_Number", "Temp_Name");
+            E3StructureTreeTraverser traverser = new E3StructureTreeTraverser(umens_e3project); // подключается к объектам Е3 (app, job, tree и др.)
             traverser.FindAllWTPartsFromSelectedFolder();
-            traverser.DisconnectFromE3Series();            
+            traverser.SyncronizeE3ProjectDataWithWindchill();
+            
+            List<string> errorMessages = traverser.errorMessages;
+            // Показываем все ошибки одним MessageBox
+            if (errorMessages.Count > 0)
+            {
+                string allErrors = string.Join("\n\n", errorMessages);
+                MessageBox.Show(allErrors, "Ошибки при чтении устройств и синхронизации с Windchill",
+                               MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+
+
+            traverser.DisconnectFromE3Series(); // "отключается" от объектов Е3
 
             return umens_e3project;
         }
 
-        private void ReadParts()
+
+
+
+        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        /// <summary>
+        ///  Обновляем все данные в зависимости от выбранной папки в дереве листов
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void E3CommonControl1_SynchronizeClicked(object sender, EventArgs e)
         {
-           // app.PutInfo(0, "старт ReadParts()");
+            public_umens_e3project = CreateAndFillUmensE3Project(); // рассчитали новые данные
+
+            // Обновляем активную вкладку (таблицу)
+            RefreshActiveTab();
+
+            ///E3Log.AppendText($"[{DateTime.Now}] Проект синхронизирован\r\n");
         }
 
-
-
-
-
-
-
-
-        private void E3WGMForm_FormClosed(object sender, FormClosedEventArgs e)
+        private void RefreshActiveTab()
         {
-           // DisconnectFromE3Series();
+            if (tabControl1.SelectedTab == tabPageStructureBrowser)
+            {
+                e3StructureBrowser1.Refresh();
+            }
+            else if (tabControl1.SelectedTab == tabPageProject)
+            {
+                // e3ProjectBrowser1.Refresh(); // раскомментировать, если есть метод
+            }
+            else if (tabControl1.SelectedTab == tabPageDocListBrowser)
+            {
+                // e3DocListBrowser1.Refresh(); // раскомментировать, если есть метод
+            }
         }
 
         private void tabControl1_SelectedIndexChanged(object sender, EventArgs e)

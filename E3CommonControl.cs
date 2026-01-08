@@ -12,9 +12,17 @@ namespace E3_WGM
 {
     public partial class E3CommonControl : UserControl
     {
+        public event EventHandler SynchronizeClicked;
+
         public E3CommonControl()
         {
             InitializeComponent();
         }
+
+        private void buttonSynch_Click(object sender, EventArgs e)
+        {
+            SynchronizeClicked?.Invoke(this, EventArgs.Empty); // Генерируем событие на которое подписана E3WGMForm
+        }
+
     }
 }

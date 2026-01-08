@@ -20,10 +20,10 @@ namespace E3_WGM.BOMBrowser
     */
     public class E3BrowserModel : ITreeModel
     {
-        private E3Project project;
+        private E3Assembly project;
         private Dictionary<string, List<BaseItem>> _cache = new Dictionary<string, List<BaseItem>>();
 
-        public E3BrowserModel(E3Project project)
+        public E3BrowserModel(E3Assembly project)
         {
             this.project = project;
         }
@@ -56,14 +56,14 @@ namespace E3_WGM.BOMBrowser
 
                 try
                 {
-                    if (parent is RootItem)
-                    {
-                        items = CreateChildItemsForRoot(parent);
-                    }
-                    else if (parent is AsmItem)
-                    {
+                    //if (parent is RootItem)
+                    //{
+                    //   items = CreateChildItemsForRoot(parent);
+                    //}
+                    //else if (parent is AsmItem)
+                    //{
                         items = CreateChildItemsForAssembly(parent);
-                    }
+                    //}
                     // PartItem - без детей (или другая логика)
                 }
                 catch (IOException ex)
@@ -81,6 +81,7 @@ namespace E3_WGM.BOMBrowser
             return items;
         }
 
+     /*
         private List<BaseItem> CreateChildItemsForRoot(BaseItem parent)
         {
             var items = new List<BaseItem>();
@@ -97,6 +98,7 @@ namespace E3_WGM.BOMBrowser
             }
             return items;
         }
+     */
 
         private List<BaseItem> CreateChildItemsForAssembly(BaseItem parent)
         {
@@ -122,7 +124,7 @@ namespace E3_WGM.BOMBrowser
             if (usage.idComp != -1)
             {
                 E3Part part = (E3Part)project.Parts.Find(x => x is E3Part && ((E3Part)x).ID == usage.idComp);
-                if (part != null)
+                if (part != null & part.isForBOM == true)
                     return new PartItem(part, parent, this);
             }
             else if (string.IsNullOrEmpty(usage.number))
@@ -147,7 +149,7 @@ namespace E3_WGM.BOMBrowser
             {
                 Part part = project.Parts.Find(x => x.number == usage.number);
 
-                if (part != null)
+                if (part != null & part.isForBOM == true)
                 {
                     if (part.GetType() == typeof(AdditionalPart))
                     {
@@ -192,6 +194,8 @@ namespace E3_WGM.BOMBrowser
                 partItem.Unit = usage.unit;
                 partItem.RefDes = usage.RefDes;
                 partItem.LineNumber = usage.lineNumber.ToString();
+                partItem.Replacement = usage.Replacements.Count > 0 ? "R" : "";
+                partItem.Replacements = usage.Replacements;
             }
             else if (item is AsmItem asmItem)
             {

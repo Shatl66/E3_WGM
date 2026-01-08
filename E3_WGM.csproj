@@ -76,7 +76,6 @@
     <Compile Include="E3PartOccurrence.cs" />
     <Compile Include="E3PartReference.cs" />
     <Compile Include="E3PartUsage.cs" />
-    <Compile Include="E3Project.cs" />
     <Compile Include="E3ProjectBrowser.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -102,6 +101,12 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="BOMBrowser\RootItem.cs" />
     <Compile Include="WindchillHTTPClient.cs" />
+    <Compile Include="WindchillLoginForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="WindchillLoginForm.Designer.cs">
+      <DependentUpon>WindchillLoginForm.cs</DependentUpon>
+    </Compile>
     <EmbeddedResource Include="E3CommonControl.resx">
       <DependentUpon>E3CommonControl.cs</DependentUpon>
     </EmbeddedResource>
@@ -127,7 +132,9 @@
       <DependentUpon>Resources.resx</DependentUpon>
       <DesignTime>True</DesignTime>
     </Compile>
-    <None Include="attrsname.json" />
+    <None Include="attrsname.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="bomrs.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

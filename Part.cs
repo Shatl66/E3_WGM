@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace E3_WGM
 {
+    [DataContract]
     public class Part
     {
         //TODO можно использовать свойство с явным именем [DataMember(Name = "_oidMaster")] и тогда оставить только - public string oidMaster { get; set; }
@@ -58,6 +59,18 @@ namespace E3_WGM
             set { _bomRS = value; }
         }
 
+        /// <summary>
+        ///  если в проекте Изелию в "Раздел спецификации" указали - "Отсутствует", то в BOM такую СЧ не включаем
+        /// </summary>
+        [DataMember]
+        private bool _isForBOM = true;
+        public bool isForBOM
+        {
+            get { return _isForBOM; }
+            set { _isForBOM = value; }
+        }
+
+
         public Part()
         {
         }
@@ -73,6 +86,14 @@ namespace E3_WGM
 
         internal void merge(Part tempPart)
         {
+            if( String.IsNullOrEmpty( oidMaster))  // так будет у additionalPart, т.к. они созданы только на основании Обозначения занесенного в атрибут Изделия
+            {
+                this.oidMaster = tempPart.oidMaster;
+                this.oid = tempPart.oid;
+                this.wchcheckout = tempPart.wchcheckout;
+            }
+                
+
             this.number = tempPart.number;
             this.name = tempPart.name;
             this.ATR_BOM_RS = tempPart.ATR_BOM_RS;

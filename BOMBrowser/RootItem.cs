@@ -8,7 +8,7 @@ namespace E3_WGM.BOMBrowser
 {
     public class RootItem : BaseItem
     {
-        public RootItem(E3Project project, E3BrowserModel owner)
+        public RootItem(E3Assembly project, E3BrowserModel owner)
         {
             Part = project;
             Owner = owner;

@@ -100,7 +100,7 @@ namespace E3_WGM
             this.ATR_E3_WIRETYPE = tempE3Cable.ATR_E3_WIRETYPE;
             // this.ATR_E3_CLASS = tempE3Cable.ATR_E3_CLASS;
 
-            e3Pin wire = E3WGMForm.public_umens_e3project.getJob().CreatePinObject();
+            e3Pin wire = null; // E3WGMForm.public_umens_e3project.getJob().CreatePinObject();
             dynamic wiregrouptype = null, wiretype = null;
 
             foreach (int itemId in IDs)

@@ -84,7 +84,30 @@ namespace E3_WGM
         [DataMember]
         private List<E3PartOccurrence> _occurrences = new List<E3PartOccurrence>();
 
+        [DataMember]
+        private List<String> _replacements = new List<String>();
+        public List<String> Replacements
+        {
+            get { return _replacements; }
+            set { }
+        }
+
         public int idComp { get; set; }
+
+
+
+        // Приватное поле с публичным свойством для контроля доступа
+        private Dictionary<int, double> _amountOfAddedParts_InHost; // ключ - hostID (то же значение. что в parentID), значение - количество текущей AddedPart в parentID
+
+        // Публичное свойство для доступа к словарю
+        public Dictionary<int, double> AmountOfAddedParts_InHost
+        {
+            get => _amountOfAddedParts_InHost;
+            private set => _amountOfAddedParts_InHost = value;
+        }
+
+
+
 
         public E3PartUsage(int idComp, string number, string unit)
         {
@@ -135,6 +158,10 @@ namespace E3_WGM
             this.ATR_E3_WIRETYPE = cable.ATR_E3_WIRETYPE;
         }
 
+        /// <summary>
+        /// Проверяет появился ли новый RefDes у Изделия и если Да, то наращивает количество Изделия для ЭСИ
+        /// </summary>
+        /// <param name="dev"></param>
         internal void AddOccurrence(e3Device dev)
         {
             if (!_occurrences.Exists(x => x.refDes.Equals(dev.GetName())))
@@ -197,7 +224,10 @@ namespace E3_WGM
 
         internal void addID(int id)
         {
-            IDs.Add(id);
+            if (!IDs.Contains(id))
+            {
+                IDs.Add(id);
+            }
         }
 
         internal void setLineNumber(int localLineNumber)
@@ -234,31 +264,6 @@ namespace E3_WGM
                 } 
             }*/
 
-            foreach (int itemId in parentIDs)
-            {
-                e3Device dev = E3WGMForm.public_umens_e3project.getJob().CreateDeviceObject();
-                dev.SetId(itemId);
-
-                for (int ii = 1; ii <= AdditionalPart.additionPartsMaxCount; ii++)
-                {
-                    String valueId = dev.GetAttributeValue("WCH_AdditionalPart0" + ii + "_id");
-                    if (valueId != null && valueId != "")
-                    {
-                        if (this.oidMaster == valueId)
-                        {
-                            if (localLineNumber != 0)
-                            {
-                                dev.SetAttributeValue("WCH_AdditionalPart0" + ii + "_lineNumber", "" + localLineNumber);
-                            }
-                            else
-                            {
-                                dev.SetAttributeValue("WCH_AdditionalPart0" + ii + "_lineNumber", null);
-                            }
-                            return;
-                        }
-                    }
-                }
-            }
         }
 
         public bool isUsageE3Cable()

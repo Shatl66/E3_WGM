@@ -98,5 +98,15 @@ namespace E3_WGM.BOMBrowser
             get { return _part; }
             set { _part = value; }
         }
+
+        private string _replacement = "";
+        public string Replacement
+        {
+            get { return _replacement; }
+            set { _replacement = value; }
+        }
+
+        public List<String> Replacements;
+
     }
 }

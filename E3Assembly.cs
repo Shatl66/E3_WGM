@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -14,6 +15,7 @@ namespace E3_WGM
     [DataContract]
     public class E3Assembly : Part
     {
+        internal List<Part> Parts = new List<Part>();
 
         [DataMember]
         protected List<E3PartUsage> _usages = new List<E3PartUsage>();
@@ -64,37 +66,31 @@ namespace E3_WGM
             }
         }
 
-        internal void merge(E3Assembly tempE3Asm)
+        internal void merge(E3Assembly asmWch, List<string> errorMessages)
         {
-            if (String.IsNullOrEmpty(this.oidMaster))
+            if (String.IsNullOrEmpty(asmWch.oidMaster))
             {
-                E3WGMForm.public_umens_e3project.updateUsages(tempE3Asm);
+                if (!errorMessages.Contains($"Изделие {number} не найдено в Windchill"))
+                    errorMessages.Add($"Изделие {number} не найдено в Windchill");
+                //return;
             }
-            else if (!String.IsNullOrEmpty(oidMaster)
-                && !String.IsNullOrEmpty(tempE3Asm.oidMaster)
-                && !String.Equals(oidMaster, tempE3Asm.oidMaster))
+            else if (!String.IsNullOrEmpty(oidMaster) && !String.IsNullOrEmpty(asmWch.oidMaster) && !String.Equals(oidMaster, asmWch.oidMaster))
             {
-                throw new Exception("ОШИБКА: oidMaster сборки не совпадает с Windchill");
+                if (!errorMessages.Contains($"У {number} значение oidMaster не совпадает с Windchill"))
+                    errorMessages.Add($"У {number} значение oidMaster не совпадает с Windchill");
+                //return;
             }
-            update(tempE3Asm);
+            
+            update(asmWch);
+            updateUsages(asmWch, errorMessages);            
         }
 
-        private void update(E3Assembly tempE3Asm)
+        private void update(E3Assembly asmWch)
         {
-            if (String.IsNullOrEmpty(this.oidMaster))
-            {
-                this.oidMaster = tempE3Asm.oidMaster;
-            }
-            else if (!String.IsNullOrEmpty(oidMaster)
-                && !String.IsNullOrEmpty(tempE3Asm.oidMaster)
-                && !String.Equals(oidMaster, tempE3Asm.oidMaster))
-            {
-                throw new Exception("ОШИБКА: oidMaster сборки не совпадает с Windchill");
-            }
-
-            this.number = tempE3Asm.number;
-            this.name = tempE3Asm.name;
-            this.ATR_BOM_RS = tempE3Asm.ATR_BOM_RS;
+            this.oidMaster = asmWch.oidMaster;
+            this.number = asmWch.number;
+            this.name = asmWch.name;
+            this.ATR_BOM_RS = asmWch.ATR_BOM_RS;
 
         }
 
@@ -133,9 +129,19 @@ namespace E3_WGM
             return this.number == ((E3Assembly)obj).number;
         }
 
-        internal E3PartUsage AddUsage(e3Device dev, E3Part e3Part)
+        /// <summary>
+        /// Создает для текущей assembly новый объект связи E3PartUsage (подобное у Windchill - WTPartUsageLink), если такого еще нет,
+        /// или находит имеющийся и если надо, то наращивает у него Количество и Occurrence
+        /// <para>deltaAmount возвращает на сколько увеличилось количество Изделия для ЭСИ. Нужна для расчета количества AdditionalParts этого Изделия</para>
+        /// </summary>
+        /// <param name="dev"></param>
+        /// <param name="e3Part"></param>
+        /// <param name="deltaAmount"></param>
+        /// <returns></returns>
+        internal E3PartUsage AddUsage(e3Device dev, E3Part e3Part, out double deltaAmount)
         {
             E3PartUsage usage;
+            deltaAmount = 1;
             if (!_usages.Exists(x => x.idComp == e3Part.ID))
             {
                 usage = new E3PartUsage(e3Part);
@@ -178,7 +184,12 @@ namespace E3_WGM
             }
             else
             {
+                double startAmount = usage.amount;
+
                 usage.AddOccurrence(dev);
+
+                double currentAmount = usage.amount;
+                deltaAmount = currentAmount - startAmount;
             }
 
             return usage;
@@ -188,7 +199,7 @@ namespace E3_WGM
         {
             E3PartUsage usage;
 
-            if (part.oidMaster != null && part.oidMaster != "")
+            if (!string.IsNullOrEmpty(part.oidMaster)) // if (part.oidMaster != null && part.oidMaster != "")
             {
                 if (!_usages.Exists(x => x.oidMaster == part.oidMaster))
                 {
@@ -330,28 +341,62 @@ namespace E3_WGM
 
         }
 
-        internal void Refresh()
+
+        internal void updateUsages(E3Assembly asmWch, List<string> errorMessages)
         {
-            MemoryStream stream = new MemoryStream();
-            DataContractJsonSerializerSettings settings = new DataContractJsonSerializerSettings();
-            settings.UseSimpleDictionaryFormat = true;
-            DataContractJsonSerializer ser = new DataContractJsonSerializer(typeof(E3Assembly), settings);
-            ser.WriteObject(stream, this);
-            stream.Position = 0;
-            StreamReader sr = new StreamReader(stream);
-            string jsonE3Asm = sr.ReadToEnd();
-            jsonE3Asm = "{\"__type\":\"E3Assembly:#E3WGM\"," + jsonE3Asm.Substring(1);
-            string jsonE3AsmFromWindchill = E3WGMForm.wchHTTPClient.getJSON(jsonE3Asm, "netmarkets/jsp/by/iba/e3/http/syncE3Assembly.jsp");
-            //string received = SocketClient.SendMessageFromSocket(SocketClient.ipString, 11000, 2, jsonE3Asm);
-            MemoryStream stream2 = new MemoryStream(Encoding.UTF8.GetBytes(jsonE3AsmFromWindchill));
-            DataContractJsonSerializer ser2 = new DataContractJsonSerializer(typeof(E3Assembly), settings);
-            E3Assembly tempE3Asm = (E3Assembly)ser2.ReadObject(stream2);
-            E3WGMForm.public_umens_e3project.updateUsages(tempE3Asm);
-            if (!String.IsNullOrEmpty(tempE3Asm.oidMaster))
+            // У Андрея ключом между системами являлся винчиловский oidMaster, но электрики накопили в Е3 много компонентов созданных вручную (без интеграции), т.е. у них отсутствует oidMaster
+            // Поэтому ПЫТАЮСЬ уйти от обязательного наличия у компонента Е3 атрибута oidMaster ! 
+            // Ключом между системами буду использовать списки IDs
+
+            // Создаем словарь для быстрого поиска по IDs
+            Dictionary<string, E3PartUsage> wchUsagesDict = new Dictionary<string, E3PartUsage>();
+
+            foreach (var wchUsage in asmWch._usages)
             {
-                this.merge(tempE3Asm);
+                if (wchUsage.IDs != null && wchUsage.IDs.Count > 0)
+                {
+                    // Создаем ключ из отсортированных IDs
+                    var sortedIds = wchUsage.IDs.OrderBy(id => id).ToList();
+                    string key = string.Join(",", sortedIds);
+                    wchUsagesDict[key] = wchUsage;
+                }
+            }
+
+            foreach (E3PartUsage currentE3PartUsage in _usages)
+            {
+
+                // Создаем ключ для поиска
+                var sortedCurrentIds = currentE3PartUsage.IDs.OrderBy(id => id).ToList();
+                string currentKey = string.Join(",", sortedCurrentIds);
+
+                if (wchUsagesDict.TryGetValue(currentKey, out E3PartUsage matchingUsageFromWch))
+                {
+                    if( String.IsNullOrEmpty(matchingUsageFromWch.oidMaster))
+                    {
+                        String obj = !String.IsNullOrEmpty(matchingUsageFromWch.number) ? matchingUsageFromWch.number : matchingUsageFromWch.ATR_E3_ENTRY;
+                        if (!errorMessages.Contains($"Изделие { obj} не найдено в Windchill"))
+                            errorMessages.Add($"Изделие { obj} не найдено в Windchill");
+
+                        continue;
+                    }
+
+                    // Добавляем данные полученные в Windchill
+                    currentE3PartUsage.oidMaster = matchingUsageFromWch.oidMaster; // если по заполненному в Е3 number нашли объект в Windchill, то перенесем вычисленный oidMaster в Е3, пусть будет. 
+                    currentE3PartUsage.number = matchingUsageFromWch.number; // лишнее ?
+                    currentE3PartUsage.unit = matchingUsageFromWch.unit;
+                    //currentE3PartUsage.amount = matchingUsage.amount;
+                    currentE3PartUsage.lineNumber = matchingUsageFromWch.lineNumber;
+
+                    if (matchingUsageFromWch.isUsageE3Cable())
+                    {
+                        currentE3PartUsage.ATR_E3_WIRETYPE = matchingUsageFromWch.ATR_E3_WIRETYPE; // лишнее ?
+                    }
+                }
+                else
+                {
+                    // такого по идее не может быть.
+                }
             }
         }
-
     }
 }

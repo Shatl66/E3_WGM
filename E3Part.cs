@@ -109,6 +109,7 @@ namespace E3_WGM
 
         internal virtual void Refresh()
         {
+            /*
             e3Component comp = E3WGMForm.public_umens_e3project.getJob().CreateComponentObject();
 
             //У дополнительных частей _id=0
@@ -149,7 +150,7 @@ namespace E3_WGM
                 this.ATR_E3_ENTRY = comp.GetName();
                 this.ATR_E3_CLASS = comp.GetAttributeValue("Class");
             }
-
+            */
         }
 
         internal object[] getDataForRow() //TODO добавить override ?

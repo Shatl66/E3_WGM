@@ -49,6 +49,8 @@
             this._refDes = new Aga.Controls.Tree.NodeControls.NodeTextBox();
             this.panel1 = new System.Windows.Forms.Panel();
             this.button1 = new System.Windows.Forms.Button();
+            this.treeColumnReplacement = new Aga.Controls.Tree.TreeColumn();
+            this._replacement = new Aga.Controls.Tree.NodeControls.NodeTextBox();
             this.panel1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -58,6 +60,7 @@
             this._treeView.AutoRowHeight = true;
             this._treeView.BackColor = System.Drawing.SystemColors.Window;
             this._treeView.Columns.Add(this.treeColumnNumber);
+            this._treeView.Columns.Add(this.treeColumnReplacement);
             this._treeView.Columns.Add(this.treeColumnName);
             this._treeView.Columns.Add(this.treeColumnEntry);
             this._treeView.Columns.Add(this.treeColumnBomRS);
@@ -85,12 +88,14 @@
             this._treeView.NodeControls.Add(this._unit);
             this._treeView.NodeControls.Add(this._lineNumber);
             this._treeView.NodeControls.Add(this._refDes);
+            this._treeView.NodeControls.Add(this._replacement);
             this._treeView.SelectedNode = null;
             this._treeView.ShowNodeToolTips = true;
             this._treeView.Size = new System.Drawing.Size(573, 129);
             this._treeView.TabIndex = 1;
             this._treeView.Text = "treeViewAdv1";
             this._treeView.UseColumns = true;
+            this._treeView.NodeMouseClick += new System.EventHandler<Aga.Controls.Tree.TreeNodeAdvMouseEventArgs>(this._treeView_NodeMouseClick);
             // 
             // treeColumnNumber
             // 
@@ -104,7 +109,7 @@
             this.treeColumnName.Header = "Наименование";
             this.treeColumnName.SortOrder = System.Windows.Forms.SortOrder.None;
             this.treeColumnName.TooltipText = null;
-            this.treeColumnName.Width = 250;
+            this.treeColumnName.Width = 350;
             // 
             // treeColumnEntry
             // 
@@ -237,6 +242,19 @@
             this.button1.Text = "Выгрузить";
             this.button1.UseVisualStyleBackColor = true;
             // 
+            // treeColumnReplacement
+            // 
+            this.treeColumnReplacement.Header = "";
+            this.treeColumnReplacement.SortOrder = System.Windows.Forms.SortOrder.None;
+            this.treeColumnReplacement.TooltipText = null;
+            // 
+            // _replacement
+            // 
+            this._replacement.DataPropertyName = "Replacement";
+            this._replacement.IncrementalSearchEnabled = true;
+            this._replacement.LeftMargin = 3;
+            this._replacement.ParentColumn = this.treeColumnReplacement;
+            // 
             // E3StructureBrowser
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -272,5 +290,7 @@
         private Aga.Controls.Tree.NodeControls.NodeTextBox _unit;
         private Aga.Controls.Tree.NodeControls.NodeTextBox _lineNumber;
         private Aga.Controls.Tree.NodeControls.NodeTextBox _refDes;
+        private Aga.Controls.Tree.TreeColumn treeColumnReplacement;
+        private Aga.Controls.Tree.NodeControls.NodeTextBox _replacement;
     }
 }
