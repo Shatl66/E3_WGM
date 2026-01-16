@@ -47,12 +47,8 @@ namespace E3_WGM
                 if (partItem.Replacements.Count > 0)
                 {
                     numbers = string.Join("\n", partItem.Replacements);
+                    MessageBox.Show(numbers, "Информация о подстановках");
                 }
-                else
-                {
-                    numbers = "Подстановки отсутствуют";
-                }
-                MessageBox.Show( numbers, "Информация о подстановках");
             }
 
             /*

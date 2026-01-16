@@ -26,7 +26,7 @@ namespace E3_WGM
         private E3Assembly umens_e3project;
         private List<String> folders = new List<String>(); // для проверки от зацикливания, когда папка с именем "Х" может входить в себя же ниже по структуре папок.
         public List<string> errorMessages = new List<string>();
-        private E3Assembly assemblyForPartsFromShemas;
+        private E3Assembly assemblyForPartsFromShemas = null;
 
 
         public E3StructureTreeTraverser(E3Assembly umens_e3project)
@@ -165,16 +165,21 @@ namespace E3_WGM
 
         //-----------------------------------------Start вычисления СЧ-ей из схем ------------------------------------------------------------------------------------
 
-        private void managerFindParts( e3Sheet sheet, E3Assembly parentAssembly)
+        private void managerFindParts( e3Sheet sheet, E3Assembly assembly)
         {            
-            assemblyForPartsFromShemas = parentAssembly;
+            assemblyForPartsFromShemas = assembly; // установили глобальную assemblyForPartsFromShemas, к ней и будем в методах что ниже добавлять используя E3PartUsage все входящие изделия
             e3Symbol symbol = job.CreateSymbolObject();
+            e3NetSegment netSegment = job.CreateNetSegmentObject();
+            e3Pin pin = job.CreatePinObject();
             e3Device dev = job.CreateDeviceObject(); // Это Изделие и оно является экземпляром Компонента БД Е3 в текущем проекте Е3
             int symbolId = 0;
             int devId = 0;
+            int netSegmentId = 0;
+            int pinId = 0;
 
+            // 1.
             dynamic sAllSimbolIds = null;
-            int symbolCount = sheet.GetSymbolIds(ref sAllSimbolIds);
+            int symbolCount = sheet.GetSymbolIds(ref sAllSimbolIds);            
 
             String typeSheet = sheet.GetAttributeValue(".DOCUMENT_TYPE");
             Console.WriteLine(" Вид документа " + typeSheet + ". Символов " + symbolCount);
@@ -185,20 +190,30 @@ namespace E3_WGM
                 try
                 {
                     symbolId = sAllSimbolIds[i];
-                    symbol.SetId(symbolId);
-                    
-                    //app.PutInfo(0, $"symbol {symbol.GetName()}", symbolId);
+                    symbol.SetId(symbolId);                   
 
+                    // 1. Получаем изделие
                     devId = dev.SetId( symbolId);
-                    if ( devId == 0)
-                        continue;
 
-                 //   if (dev.IsView() == 1)
-                 //   {
-                        devId = dev.SetId(dev.GetOriginalId());
-                //    }
+                    // 2. Изделие не найдено. Это когда за одним символом скрывается сразу несколько изделий !
+                    if (devId == 0)
+                    { 
+                        app.PutInfo(0, $"not found device - symbol {symbol.GetName()}", symbolId);
+                        // код далее это вместо закомменченного ниже способа через - sheet.GetNetSegmentIds
 
-                    ProcessDevice(dev);
+                        dynamic symbolDevicePinIds = null;
+                        int symbolDevicePinCount = symbol.GetDevicePinIds( ref symbolDevicePinIds); // поиск изделий через их пины
+
+                        for (int k = 1; k <= symbolDevicePinCount; k++)
+                        {
+                            devId = dev.SetId(symbolDevicePinIds[k]);
+                            ProcessDevice(dev); //TODO надо выполнять ProcessPin( pin); ??????
+                        }
+                    }
+                    else
+                    {
+                        ProcessDevice(dev);
+                    }                    
                 }
                 catch (Exception ex)
                 {
@@ -206,13 +221,58 @@ namespace E3_WGM
                 }
             }
 
+            // 2.
+            
+            dynamic sAllSegmentIds = null;
+            int segmentCount = sheet.GetNetSegmentIds(ref sAllSegmentIds);
+
+            for (int i = 1; i <= segmentCount; i++)
+            {
+                try
+                {
+                    netSegmentId = sAllSegmentIds[i];
+                    netSegment.SetId(netSegmentId);
+
+                    dynamic sAllCoreIds = null;
+                    int coreCount = netSegment.GetCoreIds(ref sAllCoreIds);
+
+                    app.PutInfo(0, $" Net Segment {netSegment.GetName()}. Core {coreCount}", netSegment.GetId());
+
+                    for (int j = 1; i <= coreCount; j++)
+                    {
+                        pinId = sAllCoreIds[j];
+                        pin.SetId(pinId);
+
+                        app.PutInfo(0, $"     CoreId {pinId}, Имя провода {pin.GetName()}", pin.GetId());
+
+                        ProcessPin( pin);
+
+                    }
+                }
+                catch (Exception ex)
+                {
+                    errorMessages.Add($"Ошибка при обработке NetSegment {netSegment.GetName()}, ID={netSegmentId}: {ex.Message}"); 
+                }
+            }
+            
         }
 
         /// <summary>
-        /// Обрабатывает одно изделие с целью определения из него 1 или нескольких СЧ для Windchill
+        /// Обрабатывает одно изделие с целью определения из него 1 или нескольких СЧ (доп. части и замены) для Windchill
         /// </summary>
         private void ProcessDevice(e3Device dev)
         {
+            // Уточняем изделие, только у оригинала будут найдены атрибуты
+            if (dev.IsFormboard() == 1)
+            {
+                dev.SetId(dev.GetOriginalId());  // переходим к оригиналу, у него уже будут найдены атрибуты.
+            }
+            else if (dev.IsView() == 1)
+            {
+                dev.SetId(dev.GetOriginalId());
+            }
+
+
             e3Component comp = job.CreateComponentObject(); // Компонент это объект в БД
             comp.SetId(dev.GetId());
 
@@ -229,13 +289,13 @@ namespace E3_WGM
         }
 
         /// <summary>
-        /// Обрабатывает устройство, отсутствующее в библиотеке компонентов. ?
+        /// Обрабатывает устройство, отсутствующее в библиотеке компонентов. ? Провода
         /// </summary>
         private void ProcessDeviceWithoutComponent(e3Device dev)
         {
             app.PutInfo(0, $"Изделие {dev.GetName()}", dev.GetId());
 
-            if (dev.IsCable() == 1)
+            if (dev.IsCable() == 1) // По dev.GetId() E3 переходит к папке "Провода" в дереве изделий.
             {
                 string assignment = dev.GetAssignment().Trim();
 
@@ -245,8 +305,8 @@ namespace E3_WGM
                     return;
                 }
 
-                E3Assembly assembly = GetOrCreateAssembly(assignment);
-                ProcessPinsForCableDevice(dev, assembly);
+                //E3Assembly assembly = GetOrCreateE3Assembly(assignment);
+                ProcessPinsForCableDevice(dev, assemblyForPartsFromShemas);
 
             }
             else if (dev.IsCable() == 0)
@@ -364,7 +424,7 @@ namespace E3_WGM
 
                 if (!string.IsNullOrEmpty(assignment) && !string.Equals(umens_e3project.number, assignment)) //TODO Проверить umens_e3project.number
                 {
-                    E3Assembly assembly = GetOrCreateAssembly(assignment);
+                    E3Assembly assembly = GetOrCreateE3Assembly(assignment); // не assemblyForPartsFromShemas ?
                     usage = assembly.AddUsage(dev, part, out _);
                 }
                 else
@@ -425,25 +485,25 @@ namespace E3_WGM
         {
             try
             {
-                string assignment = dev.GetAssignment().Trim();
-                E3Part part = new E3Part(comp);
+                E3Part part = null;
 
-                // Изделия без раздела спецификации добавляем ради нахождения Доп частей ! А в показе в WGM и передаче в Windchill будем исключать такие СЧ !!!
-                if( dev.GetAttributeValue(AttrsName.getAttrsName("atrBomRs")).Equals(BomRSValues.getBomRSValue((int)BomRSEnum.NO))) // if (part.ATR_BOM_RS.Equals(BomRSValues.getBomRSValue((int)BomRSEnum.NO)))
+                // ищем сначала в кэше
+                part = (E3Part)umens_e3project.Parts.Find(x => (x is E3Part) && (x as E3Part).ID == comp.GetId());
+
+                if ( part == null)
                 {
-                    Console.WriteLine( part.number + " RS Отсутствует !");
-                    part.isForBOM = false;
-                }
-            
-                if (!umens_e3project.Parts.Contains(part))
-                {
+                    part = new E3Part(comp);
+
+                    // ИЗДЕЛИЕ без раздела спецификации, не компонента - у него заполнен RS !, добавляем ради нахождения Доп частей ! А в показе в WGM и передаче в Windchill будем исключать такие СЧ !!!
+                    if (dev.GetAttributeValue(AttrsName.getAttrsName("atrBomRs")).Equals(BomRSValues.getBomRSValue((int)BomRSEnum.NO))) // if (part.ATR_BOM_RS.Equals(BomRSValues.getBomRSValue((int)BomRSEnum.NO)))
+                    {
+                        Console.WriteLine(part.number + " RS Отсутствует !");
+                        part.isForBOM = false;
+                    }
+
                     umens_e3project.Parts.Add(part);
                 }
-                else
-                {
-                    part = (E3Part)umens_e3project.Parts.Find(x => (x is E3Part) && (x as E3Part).ID == part.ID);
-                }
-
+            
                 double deltaAmount = 0.0;
                 E3PartUsage usage = assemblyForPartsFromShemas.AddUsage(dev, part, out deltaAmount);
                 AddReplacements(dev, usage);
@@ -458,51 +518,40 @@ namespace E3_WGM
 
 
         /// <summary>
-        /// Обрабатывает пины для кабельного устройства
+        /// Обрабатывает в цикле все пины (жилы) кабеля, создает из них объекты E3Cable и добавляет их в сборку 
         /// </summary>
         private void ProcessPinsForCableDevice(e3Device dev, E3Assembly assembly)
         {
             try
             {
                 e3Pin pin = job.CreatePinObject();
+                E3Cable e3cable = null;
+
                 dynamic sAllPinIds = null;
                 int nAllPin = dev.GetAllPinIds(ref sAllPinIds);
 
                 for (int j = 1; j <= nAllPin; j++)
                 {
                     pin.SetId(sAllPinIds[j]);
-                    ProcessCablePin(pin, assembly);
+
+                    dynamic wiregrouptype = null, wiretype = null;
+                    pin.GetWireType(ref wiregrouptype, ref wiretype);
+
+                    //Зачем он нужен ?            EnsureGeneralCableExists(wiregrouptype);
+
+                    e3cable = GetOrCreateCable(pin, wiregrouptype, wiretype);
+
+                    assembly.AddUsage(pin, e3cable); // у pin определяет его длинну и суммирует ее к такой же марке провода. ID каждого провода запоминает
+
+                    ProcessCavityesOfPin(pin, assembly);
                 }
             }
             catch (Exception ex)
             {
-                errorMessages.Add($"Ошибка при обработке пинов кабельного устройства '{dev.GetName()}': {ex.Message}");
+                errorMessages.Add($"Ошибка при обработке пинов кабеля '{dev.GetName()}': {ex.Message}");
             }
         }
 
-        /// <summary>
-        /// Обрабатывает пин кабельного устройства
-        /// </summary>
-        private void ProcessCablePin(e3Pin pin, E3Assembly assembly)
-        {
-            try
-            {
-                dynamic wiregrouptype = null, wiretype = null;
-                pin.GetWireType(ref wiregrouptype, ref wiretype);
-
-    //Зачем он нужен ?            EnsureGeneralCableExists(wiregrouptype);
-
-                E3Cable cable = GetOrCreateCable(pin, wiregrouptype, wiretype);
-
-                assembly.AddUsage(pin, cable); // у pin определяет его длинну и суммирует ее к такой же марке провода. ID каждого провода запоминает
-
-                ProcessCavityesOfPin( pin, assembly);
-            }
-            catch (Exception ex)
-            {
-                errorMessages.Add($"Ошибка при обработке пина кабельного устройства: {ex.Message}");
-            }
-        }
 
         /// <summary>
         /// Обрабатывает наконечеики
@@ -510,11 +559,13 @@ namespace E3_WGM
         /// <param name="pin"></param>
         /// <param name="assembly"></param>
         private void ProcessCavityesOfPin(e3Pin pin, E3Assembly assembly)
-        {
+        {            
             e3CavityPart cavity = job.CreateCavityPartObject();
 
             dynamic cavities = null;
-            int nAllCavityes = pin.GetEndCavityPartIds(0, ref cavities, 0); // последний параметр может быть &h01 - Only connector pin terminals 
+            // ? pin.GetCavityPartsFromPinByCore();
+            //int nAllCavityes = pin.GetEndCavityPartIds(0, ref cavities, 0); // последний параметр может быть &h01 - Only connector pin terminals 
+            int nAllCavityes = pin.GetCavityPartIds( out cavities, 0); // 2 - это all CavityParts of type Wire Seal, т.е. уплотнители 
 
             for (int k = 1; k <= nAllCavityes; k++)
             {
@@ -605,7 +656,7 @@ namespace E3_WGM
         /// <summary>
         /// Получает или создает сборку
         /// </summary>
-        private E3Assembly GetOrCreateAssembly(string assemblyNumber)
+        private E3Assembly GetOrCreateE3Assembly(string assemblyNumber)
         {
             E3Assembly assembly;
 
@@ -634,15 +685,36 @@ namespace E3_WGM
                 dynamic wiregrouptype = null, wiretype = null;
                 pin.GetWireType(ref wiregrouptype, ref wiretype);
 
-                //LogPinInfo(pin, wiregrouptype, wiretype);
 
-                EnsureGeneralCableExists(wiregrouptype);
+                // TODO зачем он нужен EnsureGeneralCableExists(wiregrouptype);
 
                 E3Cable cable = GetOrCreateCable(pin, wiregrouptype, wiretype);
                 assemblyForPartsFromShemas.AddUsage(pin, cable);
 
+
+                e3CavityPart cavity = job.CreateCavityPartObject();
+                e3Component comp = job.CreateComponentObject();
+
                 dynamic cavities = null;
-                pin.GetEndCavityPartIds(0, ref cavities, 0); // последний параметр может быть &h01 - Only connector pin terminals 
+                //int nAllCavityes = pin.GetCavityPartsFromPinByCore(pin.GetId(), out cavities, 0);
+                //int nAllCavityes = pin.GetEndCavityPartIds(0, ref cavities, 0); // последний параметр может быть &h01 - Only connector pin terminals 
+                int nAllCavityes = pin.GetCavityPartIds(out cavities, 0); // 2 - это all CavityParts of type Wire Seal, т.е. уплотнители 
+
+                for (int k = 1; k <= nAllCavityes; k++)
+                {
+                    int cavId = cavity.SetId(cavities[k]);
+                    if (cavId != 0)
+                    {
+                        int devId = comp.SetId( cavId);
+                        if (devId == 0)
+                            continue;
+
+                        Console.WriteLine( comp.GetId() + "\t " + comp.GetName());
+
+
+                    }
+                }
+
             }
             catch (Exception ex)
             {
@@ -753,7 +825,7 @@ namespace E3_WGM
                         }
 
                         AdditionalPart additionalPart = new AdditionalPart();
-                        additionalPart.number = numberAddPart;
+                        additionalPart.number = numberAddPart; // этот объект с заполненным только number будем передавать в Windchill для его там поиска
 
                         try
                         {                             
@@ -797,7 +869,6 @@ namespace E3_WGM
                             }
 
                             usage.amount = usage.amount + deltaAmountHostDevice * amountAddPart;
-                            //calculateAddedPartAmount(assembly, usage, amount);
                             usage.addParentID(dev.GetId());
                         }
                         catch (Exception e)
@@ -819,33 +890,6 @@ namespace E3_WGM
             catch (Exception ex)
             {
                 errorMessages.Add($"Ошибка при добавлении дополнительных частей: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// <para>При каждом вызове этот метод пересчитывает значение amount в объекте usage</para>
-        /// В расчете учитывается ТЕКУЩЕЕ количество Изделий у которых назначен данный AddedPart
-        /// </summary>
-        /// <param name="usage"></param>
-        /// <param name="amount"></param>
-        /// <exception cref="NotImplementedException"></exception>
-        private void calculateAddedPartAmount(E3Assembly assembly, E3PartUsage usage, double amount)
-        {
-            double totalAmount = 0.0, hostAmount = 0.0;
-            E3PartUsage hostUsage = null;
-            List<int> parentIDs = usage.parentIDs;
-
-            foreach (int hostID in parentIDs)
-            {
-                try
-                {
-                    hostUsage = assembly.Usages.Find(x => x.idComp == hostID); // должен быть найден всегда
-                    hostAmount = totalAmount + hostUsage.amount;
-                }
-                catch (Exception ex)
-                {
-                   // Console.WriteLine($"Ошибка при обработке ID {parentID}: {ex.Message}");
-                }
             }
         }
 
@@ -886,7 +930,7 @@ namespace E3_WGM
             MemoryStream stream2 = new MemoryStream(Encoding.UTF8.GetBytes(jsonAssemblyFromWindchill));
             DataContractJsonSerializer ser2 = new DataContractJsonSerializer(typeof(E3Assembly), settings);
             E3Assembly assmWch = (E3Assembly)ser2.ReadObject(stream2);
-            assm.merge( assmWch, errorMessages);
+            assm.merge( assmWch, errorMessages, job);
         }
 
 

@@ -8,6 +8,6 @@
   "additionalPart": "AdditionalPart",
   "dlina": "dlina",
   "length": "Length",
-  "cuttingLength": "CuttingLength"
+  "cuttingLength": ".CORE_MANUFACTURING_LENGHT"
 
 }

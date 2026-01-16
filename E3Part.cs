@@ -152,16 +152,5 @@ namespace E3_WGM
             }
             */
         }
-
-        internal object[] getDataForRow() //TODO добавить override ?
-        {
-            return new Object[] {oidMaster,
-                                    ID,
-                                    number,
-                                    name,
-                                    ATR_BOM_RS,
-                                    ATR_E3_ENTRY,
-                                    ATR_E3_CLASS };
-        }
     }
 }

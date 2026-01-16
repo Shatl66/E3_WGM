@@ -219,7 +219,10 @@ namespace E3_WGM
 
         internal void addParentID(int id)
         {
-            parentIDs.Add(id);
+            if (!parentIDs.Contains(id))
+            {
+                parentIDs.Add(id);
+            }
         }
 
         internal void addID(int id)

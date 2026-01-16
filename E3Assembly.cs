@@ -66,7 +66,7 @@ namespace E3_WGM
             }
         }
 
-        internal void merge(E3Assembly asmWch, List<string> errorMessages)
+        internal void merge(E3Assembly asmWch, List<string> errorMessages, e3Job job)
         {
             if (String.IsNullOrEmpty(asmWch.oidMaster))
             {
@@ -80,9 +80,10 @@ namespace E3_WGM
                     errorMessages.Add($"У {number} значение oidMaster не совпадает с Windchill");
                 //return;
             }
-            
+
             update(asmWch);
-            updateUsages(asmWch, errorMessages);            
+            updateUsages(asmWch, errorMessages);
+            updateSumPosInUsages(job);
         }
 
         private void update(E3Assembly asmWch)
@@ -94,40 +95,6 @@ namespace E3_WGM
 
         }
 
-        internal object[] getDataForRow()
-        {
-            return new Object[] {oidMaster,
-                                    number,
-                                    name,
-                                    ATR_BOM_RS };
-        }
-        internal void setParam(int columnIndex, object value)
-        {
-            switch (columnIndex)
-            {
-                case 0:
-                    this.oidMaster = (string)value;
-                    break;
-                case 1:
-                    this.number = (string)value;
-                    break;
-                case 2:
-                    this.name = (string)value;
-                    break;
-                case 3:
-                    this.ATR_BOM_RS = (string)value;
-                    break;
-            }
-        }
-
-        public override bool Equals(object obj)
-        {
-            if (!(obj.GetType() == typeof(E3Assembly)))
-            {
-                return false;
-            }
-            return this.number == ((E3Assembly)obj).number;
-        }
 
         /// <summary>
         /// Создает для текущей assembly новый объект связи E3PartUsage (подобное у Windchill - WTPartUsageLink), если такого еще нет,
@@ -252,28 +219,33 @@ namespace E3_WGM
             }
 
 
-            double amount = pin.GetLength();
-
-            if (amount == 0)
+            // проверяем обработали ли уже этот провод. Один и тот же провод может зайти сюда, т.к. он может встетиться в разных Net Segment-ах
+            if (!usage.IDs.Contains(pin.GetId()))
             {
-                string length = pin.GetAttributeValue(AttrsName.getAttrsName("cuttingLength"));
-                if (length != null && length != "")
+                double amount = pin.GetLength();
+
+                if (amount == 0)
                 {
-                    if (length.Contains(" "))
+                    string length = pin.GetAttributeValue(AttrsName.getAttrsName("cuttingLength")); //  в настройках Пеленга ->  .CORE_MANUFACTURING_LENGHT
+
+                    if (length != null && length != "")
                     {
-                        amount = Double.Parse(length.Split(' ')[0].Replace('.', ','));
-                    }
-                    else
-                    {
-                        amount = Double.Parse(length.Replace('.', ','));
+                        if (length.Contains(" "))
+                        {
+                            amount = Double.Parse(length.Split(' ')[0].Replace('.', ','));
+                        }
+                        else
+                        {
+                            amount = Double.Parse(length.Replace('.', ','));
+                        }
                     }
                 }
+
+                amount = amount / 1000;
+
+                usage.AddAmount(amount);
+                usage.addID(pin.GetId());
             }
-
-            amount = amount / 1000;
-
-            usage.AddAmount(amount);
-            usage.addID(pin.GetId());
         }
 
         internal void AddUsage(E3Part part, int parentIDs)
@@ -342,6 +314,11 @@ namespace E3_WGM
         }
 
 
+        /// <summary>
+        /// Обновляет у нашей текущей Е3 сборки данные ее связей (все E3PartUsage) данными полученными из Windchill
+        /// </summary>
+        /// <param name="asmWch"></param>
+        /// <param name="errorMessages"></param>
         internal void updateUsages(E3Assembly asmWch, List<string> errorMessages)
         {
             // У Андрея ключом между системами являлся винчиловский oidMaster, но электрики накопили в Е3 много компонентов созданных вручную (без интеграции), т.е. у них отсутствует oidMaster
@@ -353,29 +330,46 @@ namespace E3_WGM
 
             foreach (var wchUsage in asmWch._usages)
             {
+                string key;
                 if (wchUsage.IDs != null && wchUsage.IDs.Count > 0)
                 {
                     // Создаем ключ из отсортированных IDs
                     var sortedIds = wchUsage.IDs.OrderBy(id => id).ToList();
-                    string key = string.Join(",", sortedIds);
-                    wchUsagesDict[key] = wchUsage;
+                    key = string.Join(",", sortedIds);                    
                 }
+                else
+                {
+                    key = wchUsage.number; // У Доп.частей нет ID, т.к. они не расположены как самомтоятельные Изделия на СБ чертеже, но обязательно имеют Number 
+                }
+
+                wchUsagesDict[key] = wchUsage; // добавляем в словарь
             }
+
+
 
             foreach (E3PartUsage currentE3PartUsage in _usages)
             {
-
                 // Создаем ключ для поиска
-                var sortedCurrentIds = currentE3PartUsage.IDs.OrderBy(id => id).ToList();
-                string currentKey = string.Join(",", sortedCurrentIds);
+                string currentKey;
+                if (currentE3PartUsage.IDs != null && currentE3PartUsage.IDs.Count > 0)
+                {
+                    var sortedCurrentIds = currentE3PartUsage.IDs.OrderBy(id => id).ToList();
+                    currentKey = string.Join(",", sortedCurrentIds);
+                }
+                else
+                {
+                    currentKey = currentE3PartUsage.number;
+                }
+
+
 
                 if (wchUsagesDict.TryGetValue(currentKey, out E3PartUsage matchingUsageFromWch))
                 {
-                    if( String.IsNullOrEmpty(matchingUsageFromWch.oidMaster))
+                    if (String.IsNullOrEmpty(matchingUsageFromWch.oidMaster))
                     {
                         String obj = !String.IsNullOrEmpty(matchingUsageFromWch.number) ? matchingUsageFromWch.number : matchingUsageFromWch.ATR_E3_ENTRY;
-                        if (!errorMessages.Contains($"Изделие { obj} не найдено в Windchill"))
-                            errorMessages.Add($"Изделие { obj} не найдено в Windchill");
+                        if (!errorMessages.Contains($"Изделие {obj} не найдено в Windchill"))
+                            errorMessages.Add($"Изделие {obj} не найдено в Windchill");
 
                         continue;
                     }
@@ -397,6 +391,63 @@ namespace E3_WGM
                     // такого по идее не может быть.
                 }
             }
+        }
+
+        /// <summary>
+        /// Для каждого Изделия входящего в нашу текущую Е3 сборку рассчитывает значение атрибута "Суммарная позиция".
+        /// т.е. в этот атрибут заносятся позиции самого Изделия + позиции всех Дополнительных частей указанных в этом Изделии.
+        /// Е3 "знает" об атрибуте "Суммарная позиция" и вынесет на СБ чертеж у Изделия одну общую выноску с несколькими полочками для позиций.
+        /// </summary>
+        /// <exception cref="NotImplementedException"></exception>
+        private void updateSumPosInUsages(e3Job job)
+        {
+            int devLineNumber;
+            String tempLineNumber;
+
+            foreach (E3PartUsage currentE3PartUsage in _usages)
+            {
+                if (currentE3PartUsage.parentIDs.Count > 0)
+                    continue; // имеем дело с E3PartUsage Дополнительной части, а нам нужны Изделия непосредственно расположенные на СБ чертеже
+
+                foreach (int itemId in currentE3PartUsage.IDs) // на СБ чертеже Изделие может встречаться несколько раз (разные Поз.обозначения)
+                {
+                    tempLineNumber = "";
+                    List<int> lineNumbers = new List<int>();
+                    devLineNumber = currentE3PartUsage.lineNumber;
+                    lineNumbers.Add( devLineNumber); // Запомнили Позицию самого Изделия
+
+                    foreach (E3PartUsage usageWithParent in _usages) // Ищем E3PartUsage Дополнительных частей у которых Parent-ом является изделие представленное itemId
+                    {
+                        if (usageWithParent.parentIDs.Contains(itemId))
+                        {
+                            if (!lineNumbers.Contains(usageWithParent.lineNumber))
+                            {
+                                lineNumbers.Add(usageWithParent.lineNumber); // Добавили Позицию Дополнительной части 
+                            }
+                        }
+                    }
+
+                    tempLineNumber = string.Join(" \r\n", lineNumbers.OrderBy(x => x)); // строка с упорядоченными по возрастанию номерами позиций и по правилу Е3, каждый номер должен располагаться строчкой ниже
+
+
+                    // переходим к Изделию у которого в атрибут "Суммарная позиция" и занесем рассчитанное значение.
+                    if (!String.IsNullOrEmpty(currentE3PartUsage.ATR_E3_WIRETYPE)) //TODO с таким не сталкивался, чтобы проводу назначали Доп.части
+                    {
+                        e3Pin pin = job.CreatePinObject();
+                        pin.SetId(itemId);
+                        pin.SetAttributeValue("BOMpos", devLineNumber.ToString()); //TODO это "Позиция спецификации". Надо ли вообще => добавить в attrsname.json
+                        pin.SetAttributeValue(AttrsName.getAttrsName("lineNumber"), tempLineNumber);
+                    }
+                    else
+                    {
+                        e3Device dev = job.CreateDeviceObject();
+                        dev.SetId(itemId);
+                        dev.SetAttributeValue("BOMpos", devLineNumber.ToString()); //TODO это "Позиция спецификации". Надо ли вообще => добавить в attrsname.json
+                        dev.SetAttributeValue(AttrsName.getAttrsName("lineNumber"), tempLineNumber); // В Е3 у "родительского" компонента будет выведена общая выноска с позициями 
+                    }
+                }
+            }
+
         }
     }
 }

@@ -10,7 +10,6 @@ namespace E3_WGM
     [DataContract]
     public class Part
     {
-        //TODO можно использовать свойство с явным именем [DataMember(Name = "_oidMaster")] и тогда оставить только - public string oidMaster { get; set; }
         [DataMember]
         private string _oidMaster = "";
         internal string oidMaster
