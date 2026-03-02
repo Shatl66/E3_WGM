@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Menu;
@@ -191,8 +192,8 @@ namespace E3_WGM.BOMBrowser
             {
                 // partItem доступна ТОЛЬКО здесь
                 partItem.Amount = usage.amount.ToString();
-                partItem.Unit = usage.unit;
-                partItem.RefDes = usage.RefDes;
+                partItem.Unit = usage.unit;                
+                partItem.RefDes = usage.RefDes;                
                 partItem.LineNumber = usage.lineNumber.ToString();
                 partItem.Replacement = usage.Replacements.Count > 0 ? "R" : "";
                 partItem.Replacements = usage.Replacements;

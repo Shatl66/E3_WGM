@@ -54,17 +54,29 @@ namespace E3_WGM
 
         public E3Cable(e3Pin wire)
         {
-            IDs.Add(wire.GetId());
+            //IDs.Add(wire.GetId());
             dynamic wiregrouptype = null, wiretype = null;
             wire.GetWireType(ref wiregrouptype, ref wiretype);
             ATR_E3_ENTRY = wiregrouptype;
             ATR_E3_WIRETYPE = wiretype;
-            //ATR_E3_CLASS = wire.GetAttributeValue("Class");
             oidMaster = wire.GetAttributeValue("WCH_id");
             number = wire.GetAttributeValue("WCH_number");
             name = wire.GetAttributeValue("WCH_name");
             ATR_BOM_RS = wire.GetAttributeValue(AttrsName.getAttrsName("atrBomRs"));            
         }
+
+        public E3Cable(e3Device dev)
+        {
+            //IDs.Add(dev.GetId());
+            // ? ATR_E3_ENTRY = wiregrouptype;
+            // ? ATR_E3_WIRETYPE = wiretype;
+
+            oidMaster = dev.GetAttributeValue("WCH_id");
+            number = dev.GetAttributeValue("WCH_number");
+            name = dev.GetAttributeValue("WCH_name");
+            ATR_BOM_RS = dev.GetAttributeValue(AttrsName.getAttrsName("atrBomRs"));
+        }
+
 
         public E3Cable(DataGridViewRow row)
         {
@@ -86,21 +98,30 @@ namespace E3_WGM
             // ATR_E3_CLASS = (string)row.Cells["ATR_E3_CLASS"].Value;
         }
 
-        internal void merge(E3Cable tempE3Cable)
+        internal void merge(E3Cable wchE3Cable, List<string> errorMessages, e3Job job)
         {
-            if (!String.IsNullOrEmpty(this.oidMaster) && !String.IsNullOrEmpty(tempE3Cable.oidMaster) && !String.Equals(this.oidMaster, tempE3Cable.oidMaster))
+            if (String.IsNullOrEmpty( wchE3Cable.oidMaster))
             {
-                throw new Exception("ОШИБКА: oidMaster провода " + this.ATR_E3_ENTRY + " " + this.ATR_E3_WIRETYPE + " не совпадает с Windchill");
+                if (!errorMessages.Contains($"Кабель/провод {number} не найден в Windchill"))
+                    errorMessages.Add($"Кабель/провод {number} не найден в Windchill");
+                //return;
             }
-            this.oidMaster = tempE3Cable.oidMaster;
-            this.number = tempE3Cable.number;
-            this.name = tempE3Cable.name;
-            this.ATR_BOM_RS = tempE3Cable.ATR_BOM_RS;
-            this.ATR_E3_ENTRY = tempE3Cable.ATR_E3_ENTRY;
-            this.ATR_E3_WIRETYPE = tempE3Cable.ATR_E3_WIRETYPE;
-            // this.ATR_E3_CLASS = tempE3Cable.ATR_E3_CLASS;
+            else if (!String.IsNullOrEmpty(this.oidMaster) && !String.Equals(this.oidMaster, wchE3Cable.oidMaster))
+            {
+                if (!errorMessages.Contains($"У {this.number} значение oidMaster не совпадает с Windchill"))
+                    errorMessages.Add($"У кабеля/провода {number} значение атрибута oidMaster не совпадает с Windchill");
+                //return;
+            }
 
-            e3Pin wire = null; // E3WGMForm.public_umens_e3project.getJob().CreatePinObject();
+            this.oidMaster = wchE3Cable.oidMaster;
+            this.number = wchE3Cable.number;
+            this.name = wchE3Cable.name;
+            this.ATR_BOM_RS = wchE3Cable.ATR_BOM_RS;
+            this.ATR_E3_ENTRY = wchE3Cable.ATR_E3_ENTRY;
+            this.ATR_E3_WIRETYPE = wchE3Cable.ATR_E3_WIRETYPE;
+
+            /* может и надо
+            e3Pin wire = null;
             dynamic wiregrouptype = null, wiretype = null;
 
             foreach (int itemId in IDs)
@@ -112,21 +133,8 @@ namespace E3_WGM
                 {
                     throw new Exception("ОШИБКА: Провод " + wire.GetName() + " " + wiregrouptype + " " + wiretype + " не синхронизирована с Библиотекой E3. ("+ this.number + " " + this.name + " "+ this.ATR_E3_ENTRY + " " + this.ATR_E3_WIRETYPE + ")");
                 }
-
-                wire.SetAttributeValue("WCH_id", this.oidMaster);
-                wire.SetAttributeValue("WCH_number", this.number);
-                wire.SetAttributeValue("WCH_name", this.name);
-                wire.SetAttributeValue(AttrsName.getAttrsName("atrBomRs"), this.ATR_BOM_RS);
             }
-        }
-
-        public override bool Equals(object obj)
-        {
-            if (!(obj.GetType() == typeof(E3Cable)))
-            {
-                return false;
-            }
-            return this.IDs.Contains(((E3Part)obj).ID);
+            */
         }
 
         internal void Refresh()

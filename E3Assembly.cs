@@ -16,6 +16,7 @@ namespace E3_WGM
     public class E3Assembly : Part
     {
         internal List<Part> Parts = new List<Part>();
+        internal List<Document> Docs = new List<Document>();
 
         [DataMember]
         protected List<E3PartUsage> _usages = new List<E3PartUsage>();
@@ -77,7 +78,7 @@ namespace E3_WGM
             else if (!String.IsNullOrEmpty(oidMaster) && !String.IsNullOrEmpty(asmWch.oidMaster) && !String.Equals(oidMaster, asmWch.oidMaster))
             {
                 if (!errorMessages.Contains($"У {number} значение oidMaster не совпадает с Windchill"))
-                    errorMessages.Add($"У {number} значение oidMaster не совпадает с Windchill");
+                    errorMessages.Add($"У {number} значение атрибута oidMaster не совпадает с Windchill");
                 //return;
             }
 
@@ -92,6 +93,24 @@ namespace E3_WGM
             this.number = asmWch.number;
             this.name = asmWch.name;
             this.ATR_BOM_RS = asmWch.ATR_BOM_RS;
+
+        }
+
+
+        /// <summary>
+        /// Находит usage и наращивает количество
+        /// </summary>
+        /// <param name="dev"></param>
+        /// <param name="e3Part"></param>
+        /// <param name="segmentManufLength"></param>
+        internal void AddUsageLenght(e3Device dev, E3Part e3Part, double segmentManufLength)
+        {
+            if (!e3Part.ATR_BOM_RS.Equals(BomRSValues.getBomRSValue((int)BomRSEnum.MATERIAL)))
+                return;
+
+            E3PartUsage usage = _usages.Find(x => x.idComp == e3Part.ID); // обязан уже быть
+            double amount = segmentManufLength / 1000;
+            usage.AddAmount(amount);
 
         }
 
@@ -128,7 +147,7 @@ namespace E3_WGM
                 // Устройство должно быть настроено в БД как Кабель !!! if (dev.IsCable() == 1 && !String.IsNullOrEmpty(dev.GetAttributeValue(AttrsName.getAttrsName("length"))))
                 if (!String.IsNullOrEmpty(dev.GetAttributeValue(AttrsName.getAttrsName("length"))))
                 {
-                    string length = dev.GetAttributeValue("Length");
+                    string length = dev.GetAttributeValue(AttrsName.getAttrsName("length"));
                     if (!String.IsNullOrEmpty(length))
                     {
                         if (length.Contains(" "))
@@ -162,13 +181,13 @@ namespace E3_WGM
             return usage;
         }
 
-        internal E3PartUsage AddUsage(Part part, String localUnit)
+        internal E3PartUsage AddOrGetUsage(Part part, String localUnit)
         {
             E3PartUsage usage;
 
-            if (!string.IsNullOrEmpty(part.oidMaster)) // if (part.oidMaster != null && part.oidMaster != "")
+            if (!string.IsNullOrEmpty(part.number))
             {
-                if (!_usages.Exists(x => x.oidMaster == part.oidMaster))
+                if (!_usages.Exists(x => x.number == part.number))
                 {
                     usage = new E3PartUsage(part, localUnit);
                     _usages.Add(usage);
@@ -176,7 +195,7 @@ namespace E3_WGM
                 }
                 else
                 {
-                    usage = _usages.Find(x => x.oidMaster == part.oidMaster);
+                    usage = _usages.Find(x => x.number == part.number);
                 }
             }
             else
@@ -187,13 +206,19 @@ namespace E3_WGM
             return usage;
         }
 
-        internal void AddUsage(e3Pin pin, E3Cable cable)
+        /// <summary>
+        /// Создает E3PartUsage если его нет и добавляет его в _usages сборки или находит его в _usages
+        /// </summary>
+        /// <param name="pin"></param>
+        /// <param name="cable"></param>
+        /// <returns>E3PartUsage вновь созданный или найденный</returns>
+        internal E3PartUsage AddOrGetUsage(e3Pin pin, E3Cable cable)
         {
             E3PartUsage usage;
 
-            if (cable.oidMaster != null && cable.oidMaster != "")
+            if (!string.IsNullOrEmpty( cable.number))
             {
-                if (!_usages.Exists(x => x.oidMaster == cable.oidMaster))
+                if (!_usages.Exists(x => x.number == cable.number))
                 {
                     usage = new E3PartUsage(cable);
                     _usages.Add(usage);
@@ -201,7 +226,7 @@ namespace E3_WGM
                 }
                 else
                 {
-                    usage = _usages.Find(x => x.oidMaster == cable.oidMaster);
+                    usage = _usages.Find(x => x.number == cable.number);
                 }
             }
             else
@@ -218,8 +243,9 @@ namespace E3_WGM
                 }
             }
 
-
-            // проверяем обработали ли уже этот провод. Один и тот же провод может зайти сюда, т.к. он может встетиться в разных Net Segment-ах
+            return usage;
+            /*
+            // проверяем обработали ли уже ID этого провода. Один и тот же провод может зайти сюда, т.к. он может встетиться в разных Net Segment-ах
             if (!usage.IDs.Contains(pin.GetId()))
             {
                 double amount = pin.GetLength();
@@ -246,8 +272,10 @@ namespace E3_WGM
                 usage.AddAmount(amount);
                 usage.addID(pin.GetId());
             }
+            */
         }
 
+        /*
         internal void AddUsage(E3Part part, int parentIDs)
         {
             E3PartUsage usage;
@@ -270,6 +298,7 @@ namespace E3_WGM
                 }
             }
         }
+        */
 
         internal void AddUsage(Part part)
         {
@@ -323,7 +352,7 @@ namespace E3_WGM
         {
             // У Андрея ключом между системами являлся винчиловский oidMaster, но электрики накопили в Е3 много компонентов созданных вручную (без интеграции), т.е. у них отсутствует oidMaster
             // Поэтому ПЫТАЮСЬ уйти от обязательного наличия у компонента Е3 атрибута oidMaster ! 
-            // Ключом между системами буду использовать списки IDs
+            // Ключом между системами буду использовать списки IDs у изделий, что располагаются на СБ чертеже и number у Доп. частей.
 
             // Создаем словарь для быстрого поиска по IDs
             Dictionary<string, E3PartUsage> wchUsagesDict = new Dictionary<string, E3PartUsage>();
@@ -339,7 +368,7 @@ namespace E3_WGM
                 }
                 else
                 {
-                    key = wchUsage.number; // У Доп.частей нет ID, т.к. они не расположены как самомтоятельные Изделия на СБ чертеже, но обязательно имеют Number 
+                    key = wchUsage.number; // У Доп.частей нет ID, т.к. они не расположены как самостоятельные Изделия на СБ чертеже, но обязательно имеют Number 
                 }
 
                 wchUsagesDict[key] = wchUsage; // добавляем в словарь
@@ -349,6 +378,9 @@ namespace E3_WGM
 
             foreach (E3PartUsage currentE3PartUsage in _usages)
             {
+                if (currentE3PartUsage.isForBOM == false)
+                    continue;
+
                 // Создаем ключ для поиска
                 string currentKey;
                 if (currentE3PartUsage.IDs != null && currentE3PartUsage.IDs.Count > 0)

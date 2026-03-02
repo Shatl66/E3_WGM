@@ -42,6 +42,61 @@ namespace E3_WGM
             return true;
         }
 
+
+        /// <summary>
+        /// Реальное описание ошибки на стороне Windchill, если она есть, вместо просто "500 Internal Server Error" как было у Андрея.
+        /// </summary>
+        /// <param name="jsonData"></param>
+        /// <param name="jspFile"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        public string getJSONWithErrorHandling(string jsonData, string jspFile)
+        {
+            try
+            {
+                HttpWebRequest request = (HttpWebRequest)WebRequest.Create( location + "/" + jspFile);
+                request.Method = "POST";
+                request.ContentType = "application/json; charset=utf-8";
+
+                byte[] data = Encoding.UTF8.GetBytes(jsonData);
+                request.ContentLength = data.Length;
+
+                using (Stream stream = request.GetRequestStream())
+                {
+                    stream.Write(data, 0, data.Length);
+                }
+
+                using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
+                using (Stream stream = response.GetResponseStream())
+                using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
+                {
+                    string result = reader.ReadToEnd();
+
+                    // Если статус не 200, бросаем исключение с содержимым ответа
+                    if (response.StatusCode != HttpStatusCode.OK)
+                    {
+                        throw new Exception($"HTTP {response.StatusCode}: {result}");
+                    }
+
+                    return result;
+                }
+            }
+            catch (WebException ex)
+            {
+                // Чтение тела ошибки из response
+                if (ex.Response != null)
+                {
+                    using (Stream stream = ex.Response.GetResponseStream())
+                    using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
+                    {
+                        string errorResponse = reader.ReadToEnd();
+                        throw new Exception($"Ошибка сервера: {errorResponse}", ex);
+                    }
+                }
+                throw;
+            }
+        }
+
         /*
         internal string getJSON(string json, string jspFile) Код Андрея без обработки сообщения об ошике из Wondchill, всегда выводится "Ошибка код 500"
         {
@@ -78,7 +133,6 @@ namespace E3_WGM
                 taskByteArray.Wait();
                 String responseContent = Encoding.UTF8.GetString(taskByteArray.Result, 0, taskByteArray.Result.Length);
 
-                // Проверяем различные форматы ошибок: или сообщение об ошике из jsp или непрелвиденная ошибка в Windchill или при http обмене
                 CheckForErrorInResponse(responseContent);
 
                 return responseContent;
@@ -89,6 +143,12 @@ namespace E3_WGM
             }
         }
 
+        /// <summary>
+        /// Проверяет различные форматы возможных ошибок при обращениик к коду Windchill:
+        /// или наше обработанное сообщение об ошике из jsp или непредвиденная ошибка в Windchill или ошибка при http обмене
+        /// </summary>
+        /// <param name="responseContent"></param>
+        /// <exception cref="Exception"></exception>
         private void CheckForErrorInResponse(string responseContent)
         {
             if (string.IsNullOrEmpty(responseContent))

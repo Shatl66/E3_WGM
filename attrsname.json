@@ -1,13 +1,13 @@
 {
   "partNumber": "docname",
   "docType": ".DOCUMENT_TYPE",
-  "docFormat": "sheet_format",
+  "docFormat": "SheetType",
   "docTypeSuff": "doccode",
   "atrBomRs": "PartAttribute",
   "lineNumber": "SumBomPos",
   "additionalPart": "AdditionalPart",
   "dlina": "dlina",
   "length": "Length",
-  "cuttingLength": ".CORE_MANUFACTURING_LENGHT"
-
+  "cuttingLength": ".CORE_MANUFACTURING_LENGHT",
+  "amountPart": "WCH_QUANTITY"
 }

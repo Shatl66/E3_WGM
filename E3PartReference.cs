@@ -36,7 +36,7 @@ namespace E3_WGM
         }
 
 
-/*
+
         internal void updateReference(Document projectDoc2)
         {
             if (String.IsNullOrEmpty(projectDoc2.oidMaster))
@@ -50,6 +50,6 @@ namespace E3_WGM
                 this.value = projectDoc2.oidMaster;
             }
         }
-*/
+
     }
 }

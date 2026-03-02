@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
+using System.Xml.Linq;
 
 namespace E3_WGM
 {
@@ -92,6 +93,17 @@ namespace E3_WGM
             set { }
         }
 
+        /// <summary>
+        ///  если в проекте Изелию в "Раздел спецификации" указали - "Отсутствует", то в BOM такую СЧ не включаем
+        /// </summary>
+        [DataMember]
+        private bool _isForBOM = true;
+        public bool isForBOM
+        {
+            get { return _isForBOM; }
+            set { _isForBOM = value; }
+        }
+
         public int idComp { get; set; }
 
 
@@ -130,6 +142,7 @@ namespace E3_WGM
 
             this.oidMaster = part.oidMaster;
             this.number = part.number;
+            this.isForBOM = part.isForBOM;
         }
 
         public E3PartUsage(Part part, String localUnit)
@@ -167,16 +180,30 @@ namespace E3_WGM
             if (!_occurrences.Exists(x => x.refDes.Equals(dev.GetName())))
             {
                 _occurrences.Add(new E3PartOccurrence(dev.GetName()));
-                _amount++;
+
+                //_amount++;
+                if (!String.IsNullOrEmpty(dev.GetAttributeValue(AttrsName.getAttrsName("amountPart"))))
+                {
+                    _amount = _amount + Double.Parse(dev.GetAttributeValue(AttrsName.getAttrsName("amountPart")).Replace('.', ','));
+                }
+                else
+                {
+                    _amount++;
+                }
+
             }
         }
 
-        internal void AddAmount()
+        internal void AddAmount() // только для сборок включаемых в родительскую сборку
         {
             _amount++;
         }
 
-        internal void AddAmount(double localAmount)
+        /// <summary>
+        /// Наращивает количество
+        /// </summary>
+        /// <param name="localAmount"></param>
+        internal void AddAmount(double localAmount) // Для материалов и проводов
         {
             _amount += localAmount;
         }
@@ -188,6 +215,9 @@ namespace E3_WGM
                 string refDes = "";
                 foreach (E3PartOccurrence occurrence in _occurrences)
                 {
+                    if (int.TryParse(occurrence.refDes, out int result)) // Согласовано с Данилой и электриками - не выводить в качестве Позиционных обозначений числа, т.к. их генерит сам Е3
+                        return ""; // т.е. refDes был типа "7745"
+
                     if (refDes != "")
                     {
                         refDes += ", ";

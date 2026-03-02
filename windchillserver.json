@@ -1,7 +1,8 @@
 {
-  "serverProtocol": "https",
-  "serverName": "wch.peleng.jsc.local",
+  "serverProtocol": "http",
+  "serverName": "wch-test.peleng.jsc.local",
   "ignoreSSLPolicyErrors": "true",
   "useRefLinkForDocumentation": "false",
-  "allowUnloadStructure": "true"
+  "allowUnloadStructure": "true",
+  "tempPathForDoc": "C:/E3/Temp/"
 }

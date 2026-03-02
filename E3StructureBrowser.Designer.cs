@@ -30,6 +30,7 @@
         {
             this._treeView = new Aga.Controls.Tree.TreeViewAdv();
             this.treeColumnNumber = new Aga.Controls.Tree.TreeColumn();
+            this.treeColumnReplacement = new Aga.Controls.Tree.TreeColumn();
             this.treeColumnName = new Aga.Controls.Tree.TreeColumn();
             this.treeColumnEntry = new Aga.Controls.Tree.TreeColumn();
             this.treeColumnBomRS = new Aga.Controls.Tree.TreeColumn();
@@ -47,10 +48,9 @@
             this._unit = new Aga.Controls.Tree.NodeControls.NodeTextBox();
             this._lineNumber = new Aga.Controls.Tree.NodeControls.NodeTextBox();
             this._refDes = new Aga.Controls.Tree.NodeControls.NodeTextBox();
-            this.panel1 = new System.Windows.Forms.Panel();
-            this.button1 = new System.Windows.Forms.Button();
-            this.treeColumnReplacement = new Aga.Controls.Tree.TreeColumn();
             this._replacement = new Aga.Controls.Tree.NodeControls.NodeTextBox();
+            this.panel1 = new System.Windows.Forms.Panel();
+            this.buttonUploadStructure = new System.Windows.Forms.Button();
             this.panel1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -104,16 +104,22 @@
             this.treeColumnNumber.TooltipText = "Number";
             this.treeColumnNumber.Width = 200;
             // 
+            // treeColumnReplacement
+            // 
+            this.treeColumnReplacement.Header = "";
+            this.treeColumnReplacement.SortOrder = System.Windows.Forms.SortOrder.None;
+            this.treeColumnReplacement.TooltipText = null;
+            // 
             // treeColumnName
             // 
             this.treeColumnName.Header = "Наименование";
             this.treeColumnName.SortOrder = System.Windows.Forms.SortOrder.None;
             this.treeColumnName.TooltipText = null;
-            this.treeColumnName.Width = 350;
+            this.treeColumnName.Width = 400;
             // 
             // treeColumnEntry
             // 
-            this.treeColumnEntry.Header = "Имя ??";
+            this.treeColumnEntry.Header = "Имя в БД Е3";
             this.treeColumnEntry.SortOrder = System.Windows.Forms.SortOrder.None;
             this.treeColumnEntry.TooltipText = null;
             this.treeColumnEntry.Width = 100;
@@ -222,38 +228,33 @@
             this._refDes.LeftMargin = 3;
             this._refDes.ParentColumn = this.treeColumnRefDes;
             // 
-            // panel1
-            // 
-            this.panel1.Controls.Add(this.button1);
-            this.panel1.Dock = System.Windows.Forms.DockStyle.Top;
-            this.panel1.Location = new System.Drawing.Point(0, 0);
-            this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(573, 40);
-            this.panel1.TabIndex = 2;
-            // 
-            // button1
-            // 
-            this.button1.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
-            this.button1.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
-            this.button1.Location = new System.Drawing.Point(221, 7);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(100, 25);
-            this.button1.TabIndex = 2;
-            this.button1.Text = "Выгрузить";
-            this.button1.UseVisualStyleBackColor = true;
-            // 
-            // treeColumnReplacement
-            // 
-            this.treeColumnReplacement.Header = "";
-            this.treeColumnReplacement.SortOrder = System.Windows.Forms.SortOrder.None;
-            this.treeColumnReplacement.TooltipText = null;
-            // 
             // _replacement
             // 
             this._replacement.DataPropertyName = "Replacement";
             this._replacement.IncrementalSearchEnabled = true;
             this._replacement.LeftMargin = 3;
             this._replacement.ParentColumn = this.treeColumnReplacement;
+            // 
+            // panel1
+            // 
+            this.panel1.Controls.Add(this.buttonUploadStructure);
+            this.panel1.Dock = System.Windows.Forms.DockStyle.Top;
+            this.panel1.Location = new System.Drawing.Point(0, 0);
+            this.panel1.Name = "panel1";
+            this.panel1.Size = new System.Drawing.Size(573, 40);
+            this.panel1.TabIndex = 2;
+            // 
+            // buttonUploadStructure
+            // 
+            this.buttonUploadStructure.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
+            this.buttonUploadStructure.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.buttonUploadStructure.Location = new System.Drawing.Point(42, 8);
+            this.buttonUploadStructure.Name = "buttonUploadStructure";
+            this.buttonUploadStructure.Size = new System.Drawing.Size(100, 25);
+            this.buttonUploadStructure.TabIndex = 2;
+            this.buttonUploadStructure.Text = "Выгрузить";
+            this.buttonUploadStructure.UseVisualStyleBackColor = true;
+            this.buttonUploadStructure.Click += new System.EventHandler(this.buttonUploadStructure_Click);
             // 
             // E3StructureBrowser
             // 
@@ -281,7 +282,7 @@
         private Aga.Controls.Tree.NodeControls.NodeTextBox nodeCheckBox1;
         private Aga.Controls.Tree.NodeControls.NodeIcon _icon;
         private System.Windows.Forms.Panel panel1;
-        private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.Button buttonUploadStructure;
         private Aga.Controls.Tree.NodeControls.NodeTextBox _number;
         private Aga.Controls.Tree.NodeControls.NodeTextBox _name;
         private Aga.Controls.Tree.NodeControls.NodeTextBox _entry;

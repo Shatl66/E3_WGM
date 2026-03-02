@@ -55,6 +55,7 @@
     <Compile Include="AttrsName.cs" />
     <Compile Include="BOMBrowser\BaseItem.cs" />
     <Compile Include="BomRSValues.cs" />
+    <Compile Include="Document.cs" />
     <Compile Include="E3Assembly.cs" />
     <Compile Include="BOMBrowser\E3BrowserModel.cs" />
     <Compile Include="E3Cable.cs" />
@@ -70,6 +71,7 @@
     <Compile Include="E3DocListBrowser.Designer.cs">
       <DependentUpon>E3DocListBrowser.cs</DependentUpon>
     </Compile>
+    <Compile Include="E3Documentation.cs" />
     <Compile Include="E3GeneralCable.cs" />
     <Compile Include="E3Part.cs" />
     <Compile Include="E3PartDescribe.cs" />
@@ -82,13 +84,15 @@
     <Compile Include="E3ProjectBrowser.Designer.cs">
       <DependentUpon>E3ProjectBrowser.cs</DependentUpon>
     </Compile>
+    <Compile Include="E3ProjectDocument.cs" />
     <Compile Include="E3StructureBrowser.cs">
       <SubType>UserControl</SubType>
     </Compile>
     <Compile Include="E3StructureBrowser.Designer.cs">
       <DependentUpon>E3StructureBrowser.cs</DependentUpon>
     </Compile>
-    <Compile Include="E3StructureTreeTraverser.cs" />
+    <Compile Include="UmensLogger.cs" />
+    <Compile Include="Utils.cs" />
     <Compile Include="E3WGMForm.cs">
       <SubType>Form</SubType>
     </Compile>

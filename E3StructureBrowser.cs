@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using E3_WGM.BOMBrowser;
+using System.IO;
+using System.Runtime.Serialization.Json;
 
 namespace E3_WGM
 {
@@ -63,6 +65,44 @@ namespace E3_WGM
                 MessageBox.Show($"Выбран проект: {rootItem.NUMBER}", "Информация о проекте");
             }
             */
+        }
+
+        private void buttonUploadStructure_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                //    throw new Exception("ОШИБКА: Не все составные части созданы в Windchill") я им уже сообщил об этом. Тут повторно не сообщаю, Windchill сам вернет ошибку
+
+                foreach (Part part in E3WGMForm.public_umens_e3project.Parts)
+                {
+                    if (part is E3Assembly)
+                    {
+                        MemoryStream stream = new MemoryStream();
+                        DataContractJsonSerializerSettings settings = new DataContractJsonSerializerSettings();
+                        settings.UseSimpleDictionaryFormat = true;
+                        DataContractJsonSerializer ser = new DataContractJsonSerializer(typeof(E3Assembly), settings);
+                        ser.WriteObject(stream, (E3Assembly)part);
+                        stream.Position = 0;
+                        StreamReader sr = new StreamReader(stream);
+                        string jsonProject = sr.ReadToEnd();
+                        //В классах Windchill Андреем прописано пространство имен E3WGM. Я пока использую эти же классы, поэтому нужно сопоставлять E3WGM и мое E3_WGM
+                        jsonProject = "{\"__type\":\"E3Assembly:#E3WGM\"," + jsonProject.Substring(1);
+                        string jsonProjectFromWindchill = E3WGMForm.wchHTTPClient.getJSON(jsonProject, "netmarkets/jsp/by/iba/e3/http/updateStructureE3Assembly_Umens.jsp");
+                        // Обратная замена при десериализации. Правильнее было бы прописать везде - [DataContract(Namespace = "E3WGM")]
+                        //jsonProjectFromWindchill = jsonProjectFromWindchill.Replace("E3Assembly:#E3WGM", "E3Assembly:#E3_WGM");
+
+                        UmensLogger.Log($"Выгрузка структуры {part.number} в Windchill завершена");
+                    }
+                }
+                
+                UmensLogger.Log($"Выгрузка структуры всего проекта {E3WGMForm.public_umens_e3project.number} в Windchill завершена");
+               // buttonUploadStructure.Enabled = false; // не даем повторно отправить данные. После синхронизации кнопка опять станет доступной
+            }
+            catch (Exception ex)
+            {
+                UmensLogger.Log($"Выгрузить структуру. Сообщение Windchill: {ex.Message}");
+            }
+
         }
     }
 }
