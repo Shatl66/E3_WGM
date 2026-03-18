@@ -242,6 +242,9 @@ namespace E3_WGM
             Task<byte[]> taskByteArray = taskResponse.Result.Content.ReadAsByteArrayAsync();
             taskByteArray.Wait();
             var responseString = Encoding.UTF8.GetString(taskByteArray.Result, 0, taskByteArray.Result.Length);
+
+            CheckForErrorInResponse(responseString);
+
             return responseString;
         }
 

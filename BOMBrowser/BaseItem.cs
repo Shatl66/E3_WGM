@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -60,6 +61,41 @@ namespace E3_WGM.BOMBrowser
         private string _amount = "";
         public string Amount
         {
+            /*
+            get {
+                // Культура с запятой в качестве десятичного разделителя
+                var culture = new CultureInfo("ru-RU");
+
+                // Пытаемся интерпретировать строку как число (с учётом запятой)
+                if (double.TryParse(_amount, NumberStyles.Any, culture, out double value))
+                {
+                    // Ищем позицию запятой в исходной строке
+                    int commaIndex = _amount.IndexOf(',');
+                    if (commaIndex >= 0)
+                    {
+                        // Подсчитываем количество цифр после запятой
+                        int digitsAfter = 0;
+                        for (int i = commaIndex + 1; i < _amount.Length; i++)
+                        {
+                            if (char.IsDigit(_amount[i]))
+                                digitsAfter++;
+                            else
+                                break; // останавливаемся на первом нецифровом символе
+                        }
+
+                        // Если цифр после запятой больше трёх, выполняем округление до трёх знаков
+                        if (digitsAfter > 3)
+                        {
+                            double rounded = Math.Round(value, 3, MidpointRounding.AwayFromZero);
+                            return rounded.ToString("F3", culture); // всегда три знака после запятой
+                        }
+                    }
+                }
+
+                // Во всех остальных случаях возвращаем исходную строку
+                return _amount;
+            }
+            */
             get { return _amount; }
             set { _amount = value; }
         }
@@ -67,7 +103,15 @@ namespace E3_WGM.BOMBrowser
         private string _unit = "";
         public string Unit
         {
-            get { return _unit; }
+            get {
+                if( _unit.Equals("m"))
+                    return "м";
+
+                if (_unit.Equals("ea"))
+                    return "шт";
+
+                return _unit;
+            }
             set { _unit = value; }
         }
 

@@ -32,12 +32,12 @@
             this.treeColumnNumber = new Aga.Controls.Tree.TreeColumn();
             this.treeColumnReplacement = new Aga.Controls.Tree.TreeColumn();
             this.treeColumnName = new Aga.Controls.Tree.TreeColumn();
-            this.treeColumnEntry = new Aga.Controls.Tree.TreeColumn();
+            this.treeColumnLineNumber = new Aga.Controls.Tree.TreeColumn();
             this.treeColumnBomRS = new Aga.Controls.Tree.TreeColumn();
             this.treeColumnAmount = new Aga.Controls.Tree.TreeColumn();
             this.treeColumnUnit = new Aga.Controls.Tree.TreeColumn();
-            this.treeColumnLineNumber = new Aga.Controls.Tree.TreeColumn();
             this.treeColumnRefDes = new Aga.Controls.Tree.TreeColumn();
+            this.treeColumnEntry = new Aga.Controls.Tree.TreeColumn();
             this.nodeCheckBox1 = new Aga.Controls.Tree.NodeControls.NodeTextBox();
             this._icon = new Aga.Controls.Tree.NodeControls.NodeIcon();
             this._number = new Aga.Controls.Tree.NodeControls.NodeTextBox();
@@ -61,13 +61,13 @@
             this._treeView.BackColor = System.Drawing.SystemColors.Window;
             this._treeView.Columns.Add(this.treeColumnNumber);
             this._treeView.Columns.Add(this.treeColumnReplacement);
+            this._treeView.Columns.Add(this.treeColumnLineNumber);
             this._treeView.Columns.Add(this.treeColumnName);
-            this._treeView.Columns.Add(this.treeColumnEntry);
             this._treeView.Columns.Add(this.treeColumnBomRS);
             this._treeView.Columns.Add(this.treeColumnAmount);
             this._treeView.Columns.Add(this.treeColumnUnit);
-            this._treeView.Columns.Add(this.treeColumnLineNumber);
             this._treeView.Columns.Add(this.treeColumnRefDes);
+            this._treeView.Columns.Add(this.treeColumnEntry);
             this._treeView.DefaultToolTipProvider = null;
             this._treeView.Dock = System.Windows.Forms.DockStyle.Fill;
             this._treeView.DragDropMarkColor = System.Drawing.Color.Black;
@@ -100,6 +100,7 @@
             // treeColumnNumber
             // 
             this.treeColumnNumber.Header = "Обозначение";
+            this.treeColumnNumber.Sortable = true;
             this.treeColumnNumber.SortOrder = System.Windows.Forms.SortOrder.None;
             this.treeColumnNumber.TooltipText = "Number";
             this.treeColumnNumber.Width = 200;
@@ -113,20 +114,23 @@
             // treeColumnName
             // 
             this.treeColumnName.Header = "Наименование";
+            this.treeColumnName.Sortable = true;
             this.treeColumnName.SortOrder = System.Windows.Forms.SortOrder.None;
             this.treeColumnName.TooltipText = null;
             this.treeColumnName.Width = 400;
             // 
-            // treeColumnEntry
+            // treeColumnLineNumber
             // 
-            this.treeColumnEntry.Header = "Имя в БД Е3";
-            this.treeColumnEntry.SortOrder = System.Windows.Forms.SortOrder.None;
-            this.treeColumnEntry.TooltipText = null;
-            this.treeColumnEntry.Width = 100;
+            this.treeColumnLineNumber.Header = "Позиция";
+            this.treeColumnLineNumber.Sortable = true;
+            this.treeColumnLineNumber.SortOrder = System.Windows.Forms.SortOrder.None;
+            this.treeColumnLineNumber.TooltipText = null;
+            this.treeColumnLineNumber.Width = 70;
             // 
             // treeColumnBomRS
             // 
             this.treeColumnBomRS.Header = "Раздел спецификации";
+            this.treeColumnBomRS.Sortable = true;
             this.treeColumnBomRS.SortOrder = System.Windows.Forms.SortOrder.None;
             this.treeColumnBomRS.TooltipText = null;
             this.treeColumnBomRS.Width = 170;
@@ -136,19 +140,14 @@
             this.treeColumnAmount.Header = "Количество";
             this.treeColumnAmount.SortOrder = System.Windows.Forms.SortOrder.None;
             this.treeColumnAmount.TooltipText = null;
+            this.treeColumnAmount.Width = 100;
             // 
             // treeColumnUnit
             // 
-            this.treeColumnUnit.Header = "Единица измерения";
+            this.treeColumnUnit.Header = "ЕИ";
+            this.treeColumnUnit.Sortable = true;
             this.treeColumnUnit.SortOrder = System.Windows.Forms.SortOrder.None;
             this.treeColumnUnit.TooltipText = null;
-            // 
-            // treeColumnLineNumber
-            // 
-            this.treeColumnLineNumber.Header = "Позиция";
-            this.treeColumnLineNumber.SortOrder = System.Windows.Forms.SortOrder.None;
-            this.treeColumnLineNumber.TooltipText = null;
-            this.treeColumnLineNumber.Width = 70;
             // 
             // treeColumnRefDes
             // 
@@ -156,6 +155,13 @@
             this.treeColumnRefDes.SortOrder = System.Windows.Forms.SortOrder.None;
             this.treeColumnRefDes.TooltipText = null;
             this.treeColumnRefDes.Width = 150;
+            // 
+            // treeColumnEntry
+            // 
+            this.treeColumnEntry.Header = "Имя в БД Е3";
+            this.treeColumnEntry.SortOrder = System.Windows.Forms.SortOrder.None;
+            this.treeColumnEntry.TooltipText = null;
+            this.treeColumnEntry.Width = 150;
             // 
             // nodeCheckBox1
             // 
@@ -264,6 +270,7 @@
             this.Controls.Add(this.panel1);
             this.Name = "E3StructureBrowser";
             this.Size = new System.Drawing.Size(573, 169);
+            this.Load += new System.EventHandler(this.E3StructureBrowser_Load);
             this.panel1.ResumeLayout(false);
             this.ResumeLayout(false);
 

@@ -67,6 +67,14 @@ namespace E3_WGM
             }
         }
 
+        /// <summary>
+        /// Обновляет полученными из Windchill данными все объекты нашей Е3 сборки.
+        /// Наполняет список ошибок объектами которые не были найдены в Windchill
+        /// Формирует значение атрибута "суммарная позиция" для каждого обекта нашей Е3 сборки.
+        /// </summary>
+        /// <param name="asmWch"></param>
+        /// <param name="errorMessages"></param>
+        /// <param name="job"></param>
         internal void merge(E3Assembly asmWch, List<string> errorMessages, e3Job job)
         {
             if (String.IsNullOrEmpty(asmWch.oidMaster))
@@ -124,7 +132,7 @@ namespace E3_WGM
         /// <param name="e3Part"></param>
         /// <param name="deltaAmount"></param>
         /// <returns></returns>
-        internal E3PartUsage AddUsage(e3Device dev, E3Part e3Part, out double deltaAmount)
+        internal E3PartUsage AddUsage(e3Device dev, E3Part e3Part, out double deltaAmount, Boolean incrAmount)
         {
             E3PartUsage usage;
             deltaAmount = 1;
@@ -142,9 +150,10 @@ namespace E3_WGM
 
             if (e3Part.ATR_BOM_RS.Equals(BomRSValues.getBomRSValue((int)BomRSEnum.MATERIAL)))
             {
+                // Код ниже рабочий, но является дублем расчета объектов лежащих на сегменте ( managerFindParts() 2. ). Да и эти атрибуты уже не используются.
+                /*
                 usage.unit = "m";
-                double amount = 0;
-                // Устройство должно быть настроено в БД как Кабель !!! if (dev.IsCable() == 1 && !String.IsNullOrEmpty(dev.GetAttributeValue(AttrsName.getAttrsName("length"))))
+                double amount = 0;                
                 if (!String.IsNullOrEmpty(dev.GetAttributeValue(AttrsName.getAttrsName("length"))))
                 {
                     string length = dev.GetAttributeValue(AttrsName.getAttrsName("length"));
@@ -165,17 +174,28 @@ namespace E3_WGM
                     amount = Double.Parse(dev.GetAttributeValue(AttrsName.getAttrsName("dlina")).Replace('.', ','));
                 }
 
-                amount = amount / 1000;
-                usage.AddAmount(amount);
+                if (incrAmount == true) //TODO протестировать ! Пока чисто теоретически, это нужно проверять !
+                {
+                    amount = amount / 1000;
+                    usage.AddAmount(amount);
+                }
+                */
             }
             else
             {
                 double startAmount = usage.amount;
 
+                // 1. Cначала определяем значение deltaAmount, а оно не зависит от RS ("Отсутствует" или другое)
                 usage.AddOccurrence(dev);
-
                 double currentAmount = usage.amount;
                 deltaAmount = currentAmount - startAmount;
+
+                // 2. Проверяем на RS "отсутствует" и если так, то возвращаем исходное количество изделия и occurence
+                if (incrAmount == false)
+                {
+                    usage.amount = startAmount;
+                    usage.RemoveOccurrence(dev);
+                }
             }
 
             return usage;
@@ -244,35 +264,6 @@ namespace E3_WGM
             }
 
             return usage;
-            /*
-            // проверяем обработали ли уже ID этого провода. Один и тот же провод может зайти сюда, т.к. он может встетиться в разных Net Segment-ах
-            if (!usage.IDs.Contains(pin.GetId()))
-            {
-                double amount = pin.GetLength();
-
-                if (amount == 0)
-                {
-                    string length = pin.GetAttributeValue(AttrsName.getAttrsName("cuttingLength")); //  в настройках Пеленга ->  .CORE_MANUFACTURING_LENGHT
-
-                    if (length != null && length != "")
-                    {
-                        if (length.Contains(" "))
-                        {
-                            amount = Double.Parse(length.Split(' ')[0].Replace('.', ','));
-                        }
-                        else
-                        {
-                            amount = Double.Parse(length.Replace('.', ','));
-                        }
-                    }
-                }
-
-                amount = amount / 1000;
-
-                usage.AddAmount(amount);
-                usage.addID(pin.GetId());
-            }
-            */
         }
 
         /*
@@ -433,7 +424,7 @@ namespace E3_WGM
         /// <exception cref="NotImplementedException"></exception>
         private void updateSumPosInUsages(e3Job job)
         {
-            int devLineNumber;
+            int devLineNumber = 0;
             String tempLineNumber;
 
             foreach (E3PartUsage currentE3PartUsage in _usages)
@@ -445,8 +436,12 @@ namespace E3_WGM
                 {
                     tempLineNumber = "";
                     List<int> lineNumbers = new List<int>();
-                    devLineNumber = currentE3PartUsage.lineNumber;
-                    lineNumbers.Add( devLineNumber); // Запомнили Позицию самого Изделия
+
+                    if (currentE3PartUsage.isForBOM == true)
+                    {
+                        devLineNumber = currentE3PartUsage.lineNumber;
+                        lineNumbers.Add(devLineNumber); // Запомнили Позицию самого Изделия
+                    }
 
                     foreach (E3PartUsage usageWithParent in _usages) // Ищем E3PartUsage Дополнительных частей у которых Parent-ом является изделие представленное itemId
                     {

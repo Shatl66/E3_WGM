@@ -54,6 +54,7 @@
     <Compile Include="BOMBrowser\AsmItem.cs" />
     <Compile Include="AttrsName.cs" />
     <Compile Include="BOMBrowser\BaseItem.cs" />
+    <Compile Include="BOMBrowser\NodeComparer.cs" />
     <Compile Include="BomRSValues.cs" />
     <Compile Include="Document.cs" />
     <Compile Include="E3Assembly.cs" />

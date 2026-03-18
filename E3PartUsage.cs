@@ -2,6 +2,7 @@
 using E3SetAdditionalPart;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
@@ -51,11 +52,17 @@ namespace E3_WGM
             set { _unit = value; }
         }
 
-        [DataMember]
+        //[DataMember]
         private double _amount = 0;
+        [DataMember(Name = "_amount")] // передаваться в JSON должно округляемое значение, но в JSON оно будет по прежнему представлено под именем "_amount".
         public double amount
         {
-            get { return _amount; }
+            get
+            {
+                return Math.Round(_amount, 3, MidpointRounding.AwayFromZero);
+            }
+
+            //get { return _amount; }
             set { _amount = value; }
         }
 
@@ -106,6 +113,13 @@ namespace E3_WGM
 
         public int idComp { get; set; }
 
+        private double _dopusk = 0;
+        public double Dopusk
+        {
+            get { return _dopusk; }
+            set { }
+        }
+
 
 
         // Приватное поле с публичным свойством для контроля доступа
@@ -119,14 +133,6 @@ namespace E3_WGM
         }
 
 
-
-
-        public E3PartUsage(int idComp, string number, string unit)
-        {
-            this.number = number;
-            this.idComp = idComp;
-            this._unit = unit;
-        }
 
         public E3PartUsage(Part part)
         {
@@ -192,6 +198,12 @@ namespace E3_WGM
                 }
 
             }
+        }
+
+        internal void RemoveOccurrence(e3Device dev)
+        {
+            E3PartOccurrence occur = _occurrences.Find((x => x.refDes.Equals(dev.GetName())));
+            _occurrences.Remove(occur);
         }
 
         internal void AddAmount() // только для сборок включаемых в родительскую сборку
@@ -261,42 +273,6 @@ namespace E3_WGM
             {
                 IDs.Add(id);
             }
-        }
-
-        internal void setLineNumber(int localLineNumber)
-        {
-            /*this.lineNumber = localLineNumber;
-
-            foreach (int itemId in IDs)
-            {
-                if (ATR_E3_WIRETYPE != null && ATR_E3_WIRETYPE != "")
-                {
-                    e3Pin pin = E3WGMForm.project.getJob().CreatePinObject();
-                    pin.SetId(itemId);
-                    if (localLineNumber != 0)
-                    {
-                        pin.SetAttributeValue("WCH_lineNumber", "" + localLineNumber);
-                    }
-                    else
-                    {
-                        pin.SetAttributeValue("WCH_lineNumber", null);
-                    }
-                } else
-                {
-                    e3Device dev = E3WGMForm.project.getJob().CreateDeviceObject();
-                    dev.SetId(itemId);
-
-                    if (localLineNumber != 0)
-                    {
-                        dev.SetAttributeValue("WCH_lineNumber", "" + localLineNumber);
-                    }
-                    else
-                    {
-                        dev.SetAttributeValue("WCH_lineNumber", null);
-                    }
-                } 
-            }*/
-
         }
 
         public bool isUsageE3Cable()

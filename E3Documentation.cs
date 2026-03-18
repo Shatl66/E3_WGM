@@ -289,7 +289,6 @@ namespace E3_WGM
             return new Object[] {false,
                                     oidMaster,
                                     oid,
-                                    assembly.number,
                                     number,
                                     name,
                                     ATR_BOM_RS,

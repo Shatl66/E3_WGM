@@ -13,6 +13,7 @@ using E3SetAdditionalPart;
 using System.IO;
 using static System.Net.Mime.MediaTypeNames;
 using System.IO.Ports;
+using System.Net.NetworkInformation;
 
 namespace E3_WGM
 {
@@ -23,7 +24,8 @@ namespace E3_WGM
         private e3StructureNode structureNode;
         private e3Tree tree;
         private e3Sheet sheet;
-        
+        private e3Bundle bundle;
+
         private List<string> folders = null; // для проверки от зацикливания, когда папка с именем "Х" может входить в себя же ниже по структуре папок.        
         private E3Assembly assemblyForPartsFromShemas = null;
         private int selectedRootNodeId = 0;
@@ -361,7 +363,14 @@ namespace E3_WGM
                     errorMessages.Add($"Ошибка при обработке NetSegment {netSegment.GetName()}, ID={netSegmentId}: {ex.Message}"); 
                 }
             }
-            
+
+
+            symbol = null;
+            netSegment = null;
+            pin = null;
+            dev = null;
+            comp = null;
+            e3ConnectLine = null;
         }
 
 
@@ -394,7 +403,7 @@ namespace E3_WGM
 
             if (comp.GetId() == 0) // Удалили компонент из проекта и осталось только устройство и символ на чертеже ?
             {
-                ProcessDeviceWithoutComponent(dev); //TODO не встретилось, поэтому не понятно что это такое, разобраться !
+               /// ProcessDeviceWithoutComponent(dev); //TODO не встретилось, поэтому не понятно что это такое, разобраться !
             }
             else
             {
@@ -426,28 +435,47 @@ namespace E3_WGM
             try
             {
                 E3Part part = null;
+                Boolean incrAmount = true;
 
                 // ищем сначала в кэше
-                part = (E3Part)umens_e3project.Parts.Find(x => (x is E3Part) && (x as E3Part).ID == comp.GetId()); //TODO Зачем comp.GetId() ? Я в проводах использую поиск по "WCH_number"
+                part = (E3Part)umens_e3project.Parts.Find(x => (x is E3Part) && (x as E3Part).ID == comp.GetId());
 
                 if ( part == null)
                 {
                     part = new E3Part(comp);
 
-                    // ИЗДЕЛИЕ без раздела спецификации, не КОМПОНЕНТА - у него заполнен RS !, добавляем ради нахождения Доп частей ! А в показе в WGM и передаче в Windchill будем исключать такие СЧ !!!
-                    if (dev.GetAttributeValue(AttrsName.getAttrsName("atrBomRs")).Equals(BomRSValues.getBomRSValue((int)BomRSEnum.NO))) // if (part.ATR_BOM_RS.Equals(BomRSValues.getBomRSValue((int)BomRSEnum.NO)))
+                    // ИЗДЕЛИЕ с RS "Отсутствует", не КОМПОНЕНТА ! Добавляем в Parts ! А в показе в WGM и передаче в Windchill будем исключать такие СЧ !!!
+                    if (dev.GetAttributeValue(AttrsName.getAttrsName("atrBomRs")).Equals(BomRSValues.getBomRSValue((int)BomRSEnum.NO)))
                     {
                         Console.WriteLine(part.number + " RS Отсутствует !");
                         part.isForBOM = false;
+                        incrAmount = false;
                     }
 
                     umens_e3project.Parts.Add(part);
                 }
+                else
+                {
+                    String currentDevRS = dev.GetAttributeValue(AttrsName.getAttrsName("atrBomRs"));
+                    if( !currentDevRS.Equals(BomRSValues.getBomRSValue((int)BomRSEnum.NO))) // т.е. RS НЕ равен "Отсутствует"
+                    {
+                        part.isForBOM = true; // первое такое изделие встретившееся на СБ чертеже и попавшее в Parts, возможно было isForBOM = false. А теперь его всеже нужно показывать в ЭСИ
+                        //E3PartUsage usage = umens_e3project.Usages.Find(x => x.number == part.number);
+                    }
+                    else
+                    {
+                        incrAmount = false;
+                    }
+                }
             
                 double deltaAmount = 0.0;
-                E3PartUsage usage = assemblyForPartsFromShemas.AddUsage(dev, part, out deltaAmount);
+                E3PartUsage usage = assemblyForPartsFromShemas.AddUsage(dev, part, out deltaAmount, incrAmount);
+                usage.isForBOM = part.isForBOM; // если СЧ все же показывать (смотри коммент чуть выше), то это же значение нужно задать и тут
+
                 AddReplacements(dev, usage);
                 AddAdditionalParts(dev, assemblyForPartsFromShemas, deltaAmount);
+
+                ProcessPins(dev);
             }
             catch (Exception ex)
             {
@@ -604,11 +632,11 @@ namespace E3_WGM
                 if (!string.IsNullOrEmpty(assignment) && !string.Equals(umens_e3project.number, assignment)) //TODO Проверить umens_e3project.number
                 {
                     E3Assembly assembly = GetOrCreateE3Assembly(assignment); // не assemblyForPartsFromShemas ?
-                    usage = assembly.AddUsage(dev, part, out _);
+                    usage = assembly.AddUsage(dev, part, out _, true);
                 }
                 else
                 {
-                    usage = assemblyForPartsFromShemas.AddUsage(dev, part, out _);
+                    usage = assemblyForPartsFromShemas.AddUsage(dev, part, out _, true);
                 }
 
                 // Добавляем все идентификаторы локальных устройств
@@ -649,7 +677,7 @@ namespace E3_WGM
             {
                 if (dev.IsWireGroup() == 1)
                 {
-                    ProcessWireGroup(dev);
+                    ProcessPins(dev);
                 }
                 else if (dev.IsTerminalBlock() == 1)
                 {
@@ -670,25 +698,60 @@ namespace E3_WGM
 
 
         /// <summary>
-        /// Обрабатывает группу проводов
+        /// <para>Обрабатывает все пины с целью нахождения всех жил подключенных к ним.</para>
+        /// <para>Цель - обнаружить провода которых нет возможности вынести на СБ чертеж (заземление), но которые нужны в ЭСИ</para>
+        /// При обработке сегментов цепи, как это делается в другом месте этого класса, эти провода не обнаруживаются.
         /// </summary>
-        private void ProcessWireGroup(e3Device dev)
+        private void ProcessPins(e3Device devIzdelie)
         {
+            e3Pin pinIzdelie = job.CreatePinObject();
+            e3Pin core = job.CreatePinObject();
+            e3Device dev = job.CreateDeviceObject(); //это Кабель или Одиночный провод к которому принадлежит жила.
+            int coreId, pinIdIzdelie, devId;
+
             try
-            {
-                e3Pin pin = job.CreatePinObject();
+            {                
                 dynamic sAllPinIds = null;
-                int nAllPin = dev.GetAllPinIds(ref sAllPinIds);
+                int nAllPin = devIzdelie.GetAllPinIds(ref sAllPinIds);
 
                 for (int j = 1; j <= nAllPin; j++)
                 {
-                    pin.SetId(sAllPinIds[j]);
-                    ProcessCore(pin);
+                    pinIdIzdelie = pinIzdelie.SetId(sAllPinIds[j]);
+
+                    dynamic sAllCoreIds = null;
+                    int coreCount = pinIzdelie.GetCoreIds(ref sAllCoreIds);
+
+                    //app.PutInfo(0, $" Net Segment {netSegment.GetName()}. Core {coreCount}", netSegment.GetId());
+
+                    // Определяем к чему относится жила: к одиночному проводу, или к кабелю
+                    for (int k = 1; k <= coreCount; k++)
+                    {
+                        coreId = sAllCoreIds[k];
+                        core.SetId(coreId);
+                        //app.PutInfo(0, $"     Имя провода {pin.GetName()}", pin.GetId());
+                        devId = dev.SetId(coreId); // где dev это Кабель к которому принадлежит жила.
+
+
+                        if (dev.IsCable() == 1 & dev.IsOverbraid() == 0) // отбросили искуственный Кабель "Провода", где dev.IsOverbraid() тоже 1
+                        {
+                            ProcessCable(dev, core); // обрабатываем кабель
+                        }
+                        else if (dev.IsCable() == 1 & dev.IsOverbraid() == 1)
+                        {
+                            ProcessCore(core); // обрабатываем одиночный провод
+                        }
+                    }
                 }
+
+                core = null;
+                dev = null;
             }
             catch (Exception ex)
             {
                 errorMessages.Add($"Ошибка при обработке группы проводов '{dev.GetName()}': {ex.Message}");
+
+                core = null;
+                dev = null;
             }
         }
 
@@ -745,7 +808,7 @@ namespace E3_WGM
                     AddCavityOfCable(pin, cable);
                     cable.IDs.Add(pin.GetId());
 
-                    // 2. 
+                    // 2.                     
                     double amount = pin.GetLength();
                     if (amount == 0)
                     {
@@ -761,8 +824,16 @@ namespace E3_WGM
                     }
 
                     amount = amount / 1000;
-                    usage.AddAmount(amount);
 
+                    // проверяем входит ли провод в витую пару 
+                    int bundleId = bundle.SetId( pin.GetId());
+                    if( bundleId != 0 && bundle.IsTwisted() == 1)
+                    {
+                        
+                    }
+
+
+                    usage.AddAmount(amount);
 
                     usage.addID(pin.GetId());
                 }                
@@ -990,7 +1061,7 @@ namespace E3_WGM
                     numberReplacement = attribute.GetValue();
 
                     if (usage.Replacements.Contains(numberReplacement))
-                        continue; // символ этого же изделия в этой сборке уже мог встретиться на СБ чертеже
+                        continue;
 
                     if (!string.IsNullOrEmpty(numberReplacement))
                     {
@@ -998,8 +1069,16 @@ namespace E3_WGM
                         {
                             AdditionalPart replacementPart = new AdditionalPart(); //TODO использую пока тип AdditionalPart() не по назначению
                             replacementPart.number = numberReplacement;
+                            
                             synchronizationAdditionalPartWithWindchill(replacementPart); //TODO Я пока использую чисто для проверки наличия такой СЧ в Windchill 
                             usage.Replacements.Add(numberReplacement);
+
+                            if (!umens_e3project.Parts.Exists(x => x.number == numberReplacement))
+                            {
+                                umens_e3project.Parts.Add(replacementPart);
+                            }
+
+
                         }
                         catch (Exception e)
                         {
@@ -1260,6 +1339,10 @@ namespace E3_WGM
             }
         }
 
+        /// <summary>
+        /// Синхронизируются данные всех объектов входящих в E3Assembly
+        /// </summary>
+        /// <param name="assm"></param>
         public void syncE3Assembly( E3Assembly assm)
         {
             if (!E3WGMForm.wchHTTPClient.isAuthorization())
@@ -1557,6 +1640,7 @@ namespace E3_WGM
             structureNode = job.CreateStructureNodeObject(); // это пока прото пустышка заданного типа
             tree = job.CreateTreeObject(); // это пока прото пустышка заданного типа
             sheet = job.CreateSheetObject();
+            bundle = job.CreateBundleObject();
 
             return job;
         }
@@ -1581,6 +1665,7 @@ namespace E3_WGM
             tree = null;
             structureNode = null;
             sheet = null;
+            bundle = null;
             //dev = null;
             //Cab = null;
             //pin = null;
