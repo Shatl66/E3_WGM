@@ -94,7 +94,14 @@ namespace E3_WGM
                         string jsonProject = sr.ReadToEnd();
                         //В классах Windchill Андреем прописано пространство имен E3WGM. Я пока использую эти же классы, поэтому нужно сопоставлять E3WGM и мое E3_WGM
                         jsonProject = "{\"__type\":\"E3Assembly:#E3WGM\"," + jsonProject.Substring(1);
+                        
+                        // 1.
                         string jsonAssemblyFromWindchill = E3WGMForm.wchHTTPClient.getJSON(jsonProject, "netmarkets/jsp/by/iba/e3/http/updateStructureE3Assembly_Umens.jsp");
+                        UmensLogger.Log($"Выгрузка структуры {part.number} в Windchill завершена");
+
+                        // 2. Выполнится, если 1. завершилась успешно
+                        jsonAssemblyFromWindchill = E3WGMForm.wchHTTPClient.getJSON(jsonProject, "netmarkets/jsp/by/iba/e3/http/calculateLineNumbers_Umens.jsp");
+
                         // Обратная замена при десериализации. Правильнее было бы прописать везде - [DataContract(Namespace = "E3WGM")]
                         jsonAssemblyFromWindchill = jsonAssemblyFromWindchill.Replace("E3Assembly:#E3WGM", "E3Assembly:#E3_WGM");
 
@@ -108,7 +115,7 @@ namespace E3_WGM
 
                         Refresh(); // перерисовываем таблицу с ЭСИ, сразу отрисуются номера позиций полученные из Windchill
 
-                        UmensLogger.Log($"Выгрузка структуры {part.number} в Windchill завершена");
+                        UmensLogger.Log($"Расчет позиций для {part.number} в Windchill завершен");
                         
                         E3WGMForm.UtilsInstance.DisconnectFromE3Series();
                     }
@@ -119,15 +126,14 @@ namespace E3_WGM
             }
             catch (Exception ex)
             {
-                UmensLogger.Log($"Выгрузить структуру. Сообщение Windchill: {ex.Message}");
+                String errMsg = ex.Message.Replace("Request failed: Server error:", "");
+                UmensLogger.Log($"Сообщение Windchill: {errMsg}");
             }
 
         }
 
         private void E3StructureBrowser_Load(object sender, EventArgs e)
         {
-            // Сортируемые колонки задал в дизайнере формы
-
             // Подписываемся на клик по колонке
             _treeView.ColumnClicked += _treeView_ColumnClicked;
         }
@@ -145,7 +151,10 @@ namespace E3_WGM
         {
             base.Refresh();
             _baseModel = new E3BrowserModel(E3WGMForm.public_umens_e3project);
-            _treeView.Model = new SortedTreeModel(_baseModel);
+
+            var sortedModel = new SortedTreeModel(_baseModel);
+            sortedModel.Comparer = new NodeComparer("Позиция", SortOrder.Ascending); // попросили начинать просмотр ЭСИ с этой сортировки
+            _treeView.Model = sortedModel;
             _treeView.ExpandAll();
         }
 

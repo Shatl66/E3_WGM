@@ -51,53 +51,25 @@ namespace E3_WGM.BOMBrowser
             set { }
         }
 
-        //private string _bomRS = "";
+        private string _bomRS = "";
         public string ATR_BOM_RS
         {
-            get { return _part.ATR_BOM_RS; }
-            set { }
+            get { return _bomRS; } // return _part.ATR_BOM_RS;
+            set { _bomRS = value; }
         }
 
         private string _amount = "";
         public string Amount
         {
-            /*
-            get {
-                // Культура с запятой в качестве десятичного разделителя
-                var culture = new CultureInfo("ru-RU");
-
-                // Пытаемся интерпретировать строку как число (с учётом запятой)
-                if (double.TryParse(_amount, NumberStyles.Any, culture, out double value))
-                {
-                    // Ищем позицию запятой в исходной строке
-                    int commaIndex = _amount.IndexOf(',');
-                    if (commaIndex >= 0)
-                    {
-                        // Подсчитываем количество цифр после запятой
-                        int digitsAfter = 0;
-                        for (int i = commaIndex + 1; i < _amount.Length; i++)
-                        {
-                            if (char.IsDigit(_amount[i]))
-                                digitsAfter++;
-                            else
-                                break; // останавливаемся на первом нецифровом символе
-                        }
-
-                        // Если цифр после запятой больше трёх, выполняем округление до трёх знаков
-                        if (digitsAfter > 3)
-                        {
-                            double rounded = Math.Round(value, 3, MidpointRounding.AwayFromZero);
-                            return rounded.ToString("F3", culture); // всегда три знака после запятой
-                        }
-                    }
-                }
-
-                // Во всех остальных случаях возвращаем исходную строку
-                return _amount;
-            }
-            */
             get { return _amount; }
             set { _amount = value; }
+        }
+
+        private string _tolerance = "";
+        public string Tolerance
+        {
+            get { return _tolerance; }
+            set { _tolerance = value; }
         }
 
         private string _unit = "";
@@ -109,6 +81,9 @@ namespace E3_WGM.BOMBrowser
 
                 if (_unit.Equals("ea"))
                     return "шт";
+
+                if (_unit.Equals("kg"))
+                    return "кг";
 
                 return _unit;
             }

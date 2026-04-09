@@ -26,8 +26,9 @@ namespace E3_WGM
         {
             textBoxNumberProject.Text = umens_e3projec.number;
             textBoxNameProject.Text = umens_e3projec.name;
+            textBoxRestrict.Text = E3WGMForm.UtilsInstance.restrictProject;
 
-            if(umens_e3projec.name != "Temp_Name")
+            if (umens_e3projec.name != "Temp_Name")
             {
                 textBoxNumberProject.ReadOnly = true;
                 textBoxNameProject.ReadOnly = true;
@@ -60,9 +61,7 @@ namespace E3_WGM
 
             //E3WGMForm.UtilsInstance.SyncE3Document(prjDocument);
 
-            // 1. создаем WTDocument в Windchill если его там еще нет
-            if (String.IsNullOrEmpty( prjDocument.oidMaster))
-            {
+            // 1. создаем WTDocument проекта Е3 в Windchill если его там еще нет
                 string jsonDocumentationFromWindchill = "";
 
                 MemoryStream stream = new MemoryStream();
@@ -93,10 +92,10 @@ namespace E3_WGM
                 DataContractJsonSerializer ser2 = new DataContractJsonSerializer(typeof(E3Documentation), settings);
                 E3Documentation wchDoc = (E3Documentation)ser2.ReadObject(stream2);
                 prjDocument.updateDoc(wchDoc);
-            }
+
 
             // 2.выгружаем файл проекта Е3 на локальный диск пользователя в папку заданную в конфиг.файле windchillserver.json
-            job.SaveAs(tempPath + prjFileName);
+            job.SaveAs( Path.Combine(tempPath, prjFileName));
 
             // 3. передаем файл в Windchill где он будет привязан к документу как содержимое
             MemoryStream stream3 = new MemoryStream();

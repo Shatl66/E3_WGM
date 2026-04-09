@@ -45,6 +45,14 @@ namespace E3_WGM
         }
 
         [DataMember]
+        private string _rs = "";
+        public string RS
+        {
+            get { return _rs; }
+            set { _rs = value; }
+        }
+
+        [DataMember]
         private string _unit = "ea";
         public string unit
         {
@@ -54,12 +62,12 @@ namespace E3_WGM
 
         //[DataMember]
         private double _amount = 0;
-        [DataMember(Name = "_amount")] // передаваться в JSON должно округляемое значение, но в JSON оно будет по прежнему представлено под именем "_amount".
+        [DataMember(Name = "_amount")] // в просмотре ЭСИ и передаваться в JSON должно округляемое значение, но в JSON оно будет по прежнему представлено под именем "_amount".
         public double amount
         {
             get
             {
-                return Math.Round(_amount, 3, MidpointRounding.AwayFromZero);
+                return Math.Round(_amount + _tolerance, 3, MidpointRounding.AwayFromZero);
             }
 
             //get { return _amount; }
@@ -101,7 +109,7 @@ namespace E3_WGM
         }
 
         /// <summary>
-        ///  если в проекте Изелию в "Раздел спецификации" указали - "Отсутствует", то в BOM такую СЧ не включаем
+        ///  если в проекте Изелию в "Раздел спецификации" указали - "Отсутствует", то в просмотр BOMа в Е3 и BOM Windchill такую СЧ не включаем
         /// </summary>
         [DataMember]
         private bool _isForBOM = true;
@@ -111,27 +119,32 @@ namespace E3_WGM
             set { _isForBOM = value; }
         }
 
+        [DataMember]
+        private String _state = "";
+        public String State
+        {
+            get { return _state; }
+            set { _state = value; }
+        }
+
+        [DataMember]
+        private String _restrict = ""; // значение атрибута в Windchill "Ограничительный перечень ПКИ"
+        public String Restrict
+        {
+            get { return _restrict; }
+            set { _restrict = value; }
+        }
+
+
+
         public int idComp { get; set; }
 
-        private double _dopusk = 0;
-        public double Dopusk
+        private double _tolerance = 0;
+        public double Tolerance // допуск длины (дополнительное значение) задаваемый электриками на сегментах цепи
         {
-            get { return _dopusk; }
-            set { }
+            get { return _tolerance; }
+            set { _tolerance = value; }
         }
-
-
-
-        // Приватное поле с публичным свойством для контроля доступа
-        private Dictionary<int, double> _amountOfAddedParts_InHost; // ключ - hostID (то же значение. что в parentID), значение - количество текущей AddedPart в parentID
-
-        // Публичное свойство для доступа к словарю
-        public Dictionary<int, double> AmountOfAddedParts_InHost
-        {
-            get => _amountOfAddedParts_InHost;
-            private set => _amountOfAddedParts_InHost = value;
-        }
-
 
 
         public E3PartUsage(Part part)

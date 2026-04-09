@@ -49,7 +49,7 @@
             this.E3Log.Location = new System.Drawing.Point(0, 480);
             this.E3Log.Multiline = true;
             this.E3Log.Name = "E3Log";
-            this.E3Log.Size = new System.Drawing.Size(1424, 98);
+            this.E3Log.Size = new System.Drawing.Size(1498, 98);
             this.E3Log.TabIndex = 1;
             // 
             // tabControl1
@@ -61,7 +61,7 @@
             this.tabControl1.Location = new System.Drawing.Point(0, 73);
             this.tabControl1.Name = "tabControl1";
             this.tabControl1.SelectedIndex = 0;
-            this.tabControl1.Size = new System.Drawing.Size(1424, 407);
+            this.tabControl1.Size = new System.Drawing.Size(1498, 407);
             this.tabControl1.TabIndex = 4;
             this.tabControl1.SelectedIndexChanged += new System.EventHandler(this.tabControl1_SelectedIndexChanged);
             // 
@@ -71,7 +71,7 @@
             this.tabPageProject.Location = new System.Drawing.Point(4, 22);
             this.tabPageProject.Name = "tabPageProject";
             this.tabPageProject.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPageProject.Size = new System.Drawing.Size(1416, 381);
+            this.tabPageProject.Size = new System.Drawing.Size(1490, 381);
             this.tabPageProject.TabIndex = 2;
             this.tabPageProject.Text = "Проект";
             this.tabPageProject.UseVisualStyleBackColor = true;
@@ -82,7 +82,7 @@
             this.tabPageStructureBrowser.Location = new System.Drawing.Point(4, 22);
             this.tabPageStructureBrowser.Name = "tabPageStructureBrowser";
             this.tabPageStructureBrowser.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPageStructureBrowser.Size = new System.Drawing.Size(1388, 381);
+            this.tabPageStructureBrowser.Size = new System.Drawing.Size(1462, 381);
             this.tabPageStructureBrowser.TabIndex = 0;
             this.tabPageStructureBrowser.Text = "Состав";
             this.tabPageStructureBrowser.UseVisualStyleBackColor = true;
@@ -93,7 +93,7 @@
             this.tabPageDocListBrowser.Location = new System.Drawing.Point(4, 22);
             this.tabPageDocListBrowser.Name = "tabPageDocListBrowser";
             this.tabPageDocListBrowser.Padding = new System.Windows.Forms.Padding(3);
-            this.tabPageDocListBrowser.Size = new System.Drawing.Size(1388, 381);
+            this.tabPageDocListBrowser.Size = new System.Drawing.Size(1462, 381);
             this.tabPageDocListBrowser.TabIndex = 1;
             this.tabPageDocListBrowser.Text = "Документация";
             this.tabPageDocListBrowser.UseVisualStyleBackColor = true;
@@ -103,7 +103,7 @@
             this.e3ProjectBrowser1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.e3ProjectBrowser1.Location = new System.Drawing.Point(3, 3);
             this.e3ProjectBrowser1.Name = "e3ProjectBrowser1";
-            this.e3ProjectBrowser1.Size = new System.Drawing.Size(1410, 375);
+            this.e3ProjectBrowser1.Size = new System.Drawing.Size(1484, 375);
             this.e3ProjectBrowser1.TabIndex = 0;
             // 
             // e3StructureBrowser1
@@ -111,7 +111,7 @@
             this.e3StructureBrowser1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.e3StructureBrowser1.Location = new System.Drawing.Point(3, 3);
             this.e3StructureBrowser1.Name = "e3StructureBrowser1";
-            this.e3StructureBrowser1.Size = new System.Drawing.Size(1382, 375);
+            this.e3StructureBrowser1.Size = new System.Drawing.Size(1456, 375);
             this.e3StructureBrowser1.TabIndex = 0;
             // 
             // e3DocListBrowser1
@@ -119,7 +119,7 @@
             this.e3DocListBrowser1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.e3DocListBrowser1.Location = new System.Drawing.Point(3, 3);
             this.e3DocListBrowser1.Name = "e3DocListBrowser1";
-            this.e3DocListBrowser1.Size = new System.Drawing.Size(1382, 375);
+            this.e3DocListBrowser1.Size = new System.Drawing.Size(1456, 375);
             this.e3DocListBrowser1.TabIndex = 0;
             // 
             // e3CommonControl1
@@ -127,14 +127,14 @@
             this.e3CommonControl1.Dock = System.Windows.Forms.DockStyle.Top;
             this.e3CommonControl1.Location = new System.Drawing.Point(0, 0);
             this.e3CommonControl1.Name = "e3CommonControl1";
-            this.e3CommonControl1.Size = new System.Drawing.Size(1424, 73);
+            this.e3CommonControl1.Size = new System.Drawing.Size(1498, 73);
             this.e3CommonControl1.TabIndex = 3;
             // 
             // E3WGMForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(1424, 578);
+            this.ClientSize = new System.Drawing.Size(1498, 578);
             this.Controls.Add(this.tabControl1);
             this.Controls.Add(this.e3CommonControl1);
             this.Controls.Add(this.E3Log);

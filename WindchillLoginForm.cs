@@ -24,15 +24,18 @@ namespace E3_WGM
 
         private void CancelButton_Click(object sender, EventArgs e)
         {
-            this.Dispose();
+            this.Dispose(); // освобождает все ресурсы связанные с формой
         }
 
         private void LoginButton_Click(object sender, EventArgs e)
         {
             try
             {
+                string appDir = AppDomain.CurrentDomain.BaseDirectory;
+                string configFile = Path.Combine(appDir, "userlogin.txt");
+
                 wchHTTPClient.checkLogin(UserNameTextBox.Text, PasswordTextBox.Text);
-                using (StreamWriter streamWriter = new StreamWriter("userlogin.txt"))
+                using (StreamWriter streamWriter = new StreamWriter(configFile))
                 {
                     streamWriter.WriteLine(UserNameTextBox.Text);
                     streamWriter.WriteLine(Encrypt(PasswordTextBox.Text));
@@ -47,9 +50,12 @@ namespace E3_WGM
 
         private void WindchillLoginForm_Load(object sender, EventArgs e)
         {
-            if (File.Exists("userlogin.txt"))
+            string appDir = AppDomain.CurrentDomain.BaseDirectory;
+            string configFile = Path.Combine(appDir, "userlogin.txt");
+
+            if (File.Exists(configFile))
             {
-                using (StreamReader streamReader = new StreamReader("userlogin.txt"))
+                using (StreamReader streamReader = new StreamReader(configFile))
                 {
                     UserNameTextBox.Text = streamReader.ReadLine();
                     PasswordTextBox.Text = Decrypt(streamReader.ReadLine());

@@ -103,7 +103,7 @@ namespace E3_WGM
                                     row.DefaultCellStyle.BackColor = Color.GreenYellow; // отметили, что документ в Wch уже есть
                                 }
 
-                                // 2.выгружаем документ из Е3 на локальный диск пользователя в папку заданную в конфиг.файле windchillserver.json
+                                // 2.выгружаем документ из Е3 на локальный диск пользователя в TEMP папку WGM
                                 doc.ExportToPDF(job);
 
                                 // 3. передаем файл в Windchill где он будет привязан к документу как содержимое
@@ -132,7 +132,7 @@ namespace E3_WGM
             }
             catch (Exception ex)
             {
-                UmensLogger.Log($"Выгрузка документа. Сообщение Windchill: {ex.Message}");
+                UmensLogger.Log($"Выгрузка документа. {ex.Message}");
                 E3WGMForm.UtilsInstance.DisconnectFromE3Series();           
             }            
         }

@@ -14,13 +14,14 @@ using System.IO;
 using static System.Net.Mime.MediaTypeNames;
 using System.IO.Ports;
 using System.Net.NetworkInformation;
+using System.Reflection.Emit;
 
 namespace E3_WGM
 {
     public class Utils
     {
-        private e3Application app;
-        private e3Job job;
+        public e3Application app;
+        public e3Job job;
         private e3StructureNode structureNode;
         private e3Tree tree;
         private e3Sheet sheet;
@@ -36,6 +37,9 @@ namespace E3_WGM
 
 
         public string tempPathForDoc { get; internal set; }
+        public string restrictProject { get; internal set; } // Значение атрибута проекта «WCH Ограничительный перечень ПКИ проекта» 
+
+        public Dictionary<string, string> typeDocuments = null; // устанавливается из E3WGMForms.cs
 
         public Utils()
         {
@@ -175,11 +179,15 @@ namespace E3_WGM
                     umens_e3project.number = numberPart;
                     umens_e3project.name = namePart;
                     assembly = umens_e3project;
+
+                    numberPartsForE3ProjectDocument.Add(numberPart);
                 }
                 else if(parentAssembly != null)
                 {
                     assembly = new E3Assembly(numberPart, namePart);
                     parentAssembly.AddUsage(assembly);
+
+                    numberPartsForE3ProjectDocument.Add(numberPart);
                 }
 
                 umens_e3project.Parts.Add(assembly); // накапливаем в кэше все Part-ы по 1 разу
@@ -197,7 +205,7 @@ namespace E3_WGM
             else if(internName == "Сборочный чертеж")
             {   // дошли до папки Тип документа (.DOCUMENT_TYPE) в нее уже вложены схемы. Теперь нужно достать все СЧ из схем               
 
-                numberPartsForE3ProjectDocument.Add(parentAssembly.number);
+                //numberPartsForE3ProjectDocument.Add(parentAssembly.number);
 
                 dynamic sAllSheetIds = null;
                 int nAllSheet = structureNode.GetSheetIds(ref sAllSheetIds);
@@ -277,6 +285,7 @@ namespace E3_WGM
             var dictionarySymbolsOnSegments = new Dictionary<int, e3Component>();
             dynamic sAllSegmentIds = null;
             int segmentCount = sheet.GetNetSegmentIds(ref sAllSegmentIds);
+            double tolerance;
 
             for (int i = 1; i <= segmentCount; i++)
             {
@@ -284,6 +293,11 @@ namespace E3_WGM
                 {
                     netSegmentId = sAllSegmentIds[i];
                     netSegment.SetId(netSegmentId);
+                    
+                    tolerance = double.TryParse(netSegment.GetAttributeValue("Tolerance"),
+                                   System.Globalization.NumberStyles.Any,
+                                   System.Globalization.CultureInfo.InvariantCulture,
+                                   out double parsed) ? parsed / 1000 : 0.0;
 
                     // 2.1 Обрабатываем жилы проходящие через сегмент. Учитываем, что одна и таже жила может проходить через несколько сегментов
                     dynamic sAllCoreIds = null;
@@ -301,17 +315,18 @@ namespace E3_WGM
 
                         if(dev.IsCable() == 1 & dev.IsOverbraid() == 0) // отбросили искуственный Кабель "Провода", где dev.IsOverbraid() тоже 1
                         {
-                            ProcessCable(dev, pin); // обрабатываем кабель
+                            ProcessCable(dev, pin, tolerance, netSegment.GetId()); // обрабатываем кабель
                         }
                         else {
-                            ProcessCore(pin); // обрабатываем одиночный провод
+                            ProcessCore(pin, tolerance); // обрабатываем одиночный провод
                         }
 
                     }
 
                     // 2.2 Обрабатываем изделия лежащие на сегменте для определения их производственной длинны
-                    // использовать просто int symCount = netSegment.GetSymbolIds(ref sSymIds); к сожалению недостаточно
+                    // использовать просто int symCount = netSegment.GetSymbolIds(ref sSymIds); к сожалению недостаточно. Код Данилы
                     E3Part part = null;
+                    E3PartUsage usage = null;
                     double segmentManufLength = netSegment.GetManufacturingLength();
                     var symbolsOnLines = new List<int>();
 
@@ -354,7 +369,10 @@ namespace E3_WGM
                                 assemblyForPartsFromShemas.AddUsageLenght(dev, part, segmentManufLength);
                                 
                                 dictionarySymbolsOnSegments.Add(protectionSymbolId, comp);
-                            }                            
+                            }
+
+                            usage = assemblyForPartsFromShemas.Usages.Find(x => x.number == part.number);
+                            usage.Tolerance += tolerance;
                         }
                     }
                 }
@@ -728,17 +746,17 @@ namespace E3_WGM
                     {
                         coreId = sAllCoreIds[k];
                         core.SetId(coreId);
-                        //app.PutInfo(0, $"     Имя провода {pin.GetName()}", pin.GetId());
+                        //app.PutInfo(0, $"     Имя провода {core.GetName()}", core.GetId());
                         devId = dev.SetId(coreId); // где dev это Кабель к которому принадлежит жила.
 
 
                         if (dev.IsCable() == 1 & dev.IsOverbraid() == 0) // отбросили искуственный Кабель "Провода", где dev.IsOverbraid() тоже 1
                         {
-                            ProcessCable(dev, core); // обрабатываем кабель
+                            ProcessCable(dev, core, 0, -1); // обрабатываем кабель
                         }
                         else if (dev.IsCable() == 1 & dev.IsOverbraid() == 1)
                         {
-                            ProcessCore(core); // обрабатываем одиночный провод
+                            ProcessCore(core, 0); // обрабатываем одиночный провод
                         }
                     }
                 }
@@ -786,7 +804,7 @@ namespace E3_WGM
         /// <para>Если Раздел спецификации "Отсутствует", то пропускаем обработку этого провода</para>
         /// <para>Иначе. Добавляет провод к нашей ЭСИ и определяет его длину. Находит Cavity объекты связанные с проводом и добавляет их в нашу ЭСИ</para>
         /// </summary>
-        private void ProcessCore(e3Pin pin)
+        private void ProcessCore(e3Pin pin, double tolerance)
         {
             if (pin.GetAttributeValue(AttrsName.getAttrsName("atrBomRs")).Equals(BomRSValues.getBomRSValue((int)BomRSEnum.NO)))
             {
@@ -800,7 +818,7 @@ namespace E3_WGM
 
                 E3Cable cable = GetOrCreateCable(pin, wiregrouptype, wiretype); // при создании cable закомментировал занесение в него devId
                 E3PartUsage usage = assemblyForPartsFromShemas.AddOrGetUsage(pin, cable);
-
+                usage.Tolerance += tolerance;
 
                 if (!cable.IDs.Contains(pin.GetId())) // проверяем обработали ли мы уже эту жилу
                 {
@@ -829,12 +847,10 @@ namespace E3_WGM
                     int bundleId = bundle.SetId( pin.GetId());
                     if( bundleId != 0 && bundle.IsTwisted() == 1)
                     {
-                        
+                        amount = amount * 1.3;
                     }
 
-
                     usage.AddAmount(amount);
-
                     usage.addID(pin.GetId());
                 }                
             }
@@ -844,24 +860,24 @@ namespace E3_WGM
             }
         }
 
-        private void ProcessCable(e3Device dev, e3Pin pin)
+        private void ProcessCable(e3Device devCable, e3Pin pin, double tolerance, int netSegmentId)
         {
             try
             {
-                E3Cable cable = GetOrCreateCable( dev); // при создании cable закомментировал занесение в него devId
-                E3PartUsage usage = assemblyForPartsFromShemas.AddOrGetUsage(pin, cable);
+                E3Cable cable = GetOrCreateCable( devCable); // при создании cable закомментировал занесение в него devId
+                E3PartUsage usage = assemblyForPartsFromShemas.AddOrGetUsage(pin, cable);                
 
                 // 1. Обрабатываем у жилы возможные объекты Cavity
                 if (!cable.IDs.Contains( pin.GetId())) // проверяем обработали ли мы уже эту жилу у нашего кабеля
                 {                    
                     AddCavityOfCable(pin, cable);
-                    cable.IDs.Add( pin.GetId()); // !!! в IDs кабеля заношу как Id самого кабеля, так и ID его жил !!!
-                }   
-                
-                // 2.
-                if (!cable.IDs.Contains( dev.GetId())) // проверяем обработали ли мы уже этот кабель
+                    cable.IDs.Add( pin.GetId()); // !!! в IDs кабеля заношу как Id самого кабеля, так и ID его жил, так и ID сегментов сети !!!
+                }
+
+                // 2. Проверяем обработали ли мы уже этот кабель. Длина всего кабеля определяется сразу по длинне 1 жилы
+                if (!cable.IDs.Contains( devCable.GetId()))
                 {
-                    cable.IDs.Add( dev.GetId());
+                    cable.IDs.Add( devCable.GetId());
 
                     double amount = pin.GetLength(); // длинну кабеля определяем по длинне жилы
                     if (amount == 0)
@@ -880,7 +896,14 @@ namespace E3_WGM
                     amount = amount / 1000;
                     usage.AddAmount(amount);
 
-                    usage.addID( dev.GetId());
+                    usage.addID( devCable.GetId());
+                }
+
+                // 3. Допуск на длину всего кабеля определяется суммированием допусков назначенных на каждый сегмент сети где проходит кабель.
+                if (!cable.IDs.Contains( netSegmentId))
+                {
+                    usage.Tolerance += tolerance;
+                    cable.IDs.Add( netSegmentId);
                 }
             }
             catch (Exception ex)
@@ -987,6 +1010,9 @@ namespace E3_WGM
                     numberCavityPart = cavity.GetValue();
                     cavityPart.number = numberCavityPart; // этот объект с заполненным только number будем передавать в Windchill для его там поиска
 
+                    // для реализации п.20 доп.требований (у контакта атрибут для позиции уплотнителя - "SealerPosition", Атрибут для позиции наконечника -"TipPosition"
+
+
                     try
                     {
 
@@ -1048,7 +1074,8 @@ namespace E3_WGM
                     wchLogin.ShowDialog();
                     if (wchLogin.DialogResult.Equals(DialogResult.Cancel))
                     {
-                        return;
+                        DisconnectFromE3Series();
+                        Environment.Exit(0);
                     }
                 }
 
@@ -1116,7 +1143,8 @@ namespace E3_WGM
                     wchLogin.ShowDialog();
                     if (wchLogin.DialogResult.Equals(DialogResult.Cancel))
                     {
-                        return;
+                        DisconnectFromE3Series();
+                        Environment.Exit(0);
                     }
                 }
 
@@ -1276,8 +1304,8 @@ namespace E3_WGM
                     {
                         docType = sheet.GetAttributeValue(AttrsName.getAttrsName("docType"));
                         docType = docType.Replace("\r\n", "");
-                        docTypeSuff = sheet.GetAttributeValue(AttrsName.getAttrsName("docTypeSuff")); //TODO не проверяю,что docType и docTypeSuff соответствуют друг другу
-                                                                                                      // Андрей в своем коде это проверяет, использует Dictionary<string, string> и doctype.json .
+                        docTypeSuff = calcDocTypeSuffix(docType, sheet); //sheet.GetAttributeValue(AttrsName.getAttrsName("docTypeSuff")); 
+                                                                                                      
                         docNumber = numberPart + docTypeSuff; // именно без пробела.                        
 
                         docFormat = sheet.GetAttributeValue(AttrsName.getAttrsName("docFormat"));
@@ -1285,22 +1313,6 @@ namespace E3_WGM
                         docFormat = docFormat.Replace("х", "x"); // на всякий случай
 
                         docName = parentAssembly.name; // TODO всегда совпадает ? или читать атрибут листа "Наименование изделия" (он назначен надписи в форматке)
-
-                        /*
-                        dynamic sTextIds = null;
-                        int nTextIds = sheet.GetTextIds(ref sTextIds);
-                        e3Text text = job.CreateTextObject();
-                        for (int j = 1; j <= nTextIds; j++)
-                        {
-                            text.SetId(sTextIds[j]);
-                            switch (text.GetType())
-                            {
-                                case 507: // тип (код) надписи в форматке "Наименование изделия"
-                                    docName = text.GetText();
-                                    break;
-                            }
-                        }
-                        */
                     }
 
 
@@ -1318,6 +1330,26 @@ namespace E3_WGM
                     doc.AddSheet( sheet, docFormat);
                 }
             }
+        }
+
+        /// <summary>
+        /// По типу документа определяю его суффикс.
+        /// </summary>
+        /// <param name="docType"></param>
+        /// <param name="sheet"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        private string calcDocTypeSuffix( string docType, e3Sheet sheet)
+        {
+            String docSuff = "";
+            typeDocuments.TryGetValue( docType, out docSuff);
+
+            if (docSuff == null) // пусть будет пока и эта логика.
+            {
+                docSuff = sheet.GetAttributeValue(AttrsName.getAttrsName("docTypeSuff"));
+            }
+
+            return docSuff;
         }
 
 
@@ -1351,7 +1383,8 @@ namespace E3_WGM
                 wchLogin.ShowDialog();
                 if (wchLogin.DialogResult.Equals(DialogResult.Cancel))
                 {
-                    return;
+                    DisconnectFromE3Series();
+                    Environment.Exit(0);
                 }
             }
 
@@ -1387,7 +1420,7 @@ namespace E3_WGM
                 MemoryStream stream2 = new MemoryStream(Encoding.UTF8.GetBytes(jsonAssemblyFromWindchill));
                 DataContractJsonSerializer ser2 = new DataContractJsonSerializer(typeof(E3Assembly), settings);
                 E3Assembly assmWch = (E3Assembly)ser2.ReadObject(stream2);
-                assm.merge(assmWch, errorMessages, job);
+                assm.merge(assmWch, errorMessages, job); // в подметоде наполняется список ошибок, формируется значение атрибута "суммарная позиция"
             }
             catch (Exception ex)
             {
@@ -1403,7 +1436,8 @@ namespace E3_WGM
                 wchLogin.ShowDialog();
                 if (wchLogin.DialogResult.Equals(DialogResult.Cancel))
                 {
-                    return;
+                    DisconnectFromE3Series();
+                    Environment.Exit(0);
                 }
             }
 
@@ -1468,7 +1502,8 @@ namespace E3_WGM
                 wchLogin.ShowDialog();
                 if (wchLogin.DialogResult.Equals(DialogResult.Cancel))
                 {
-                    return;
+                    DisconnectFromE3Series();
+                    Environment.Exit(0);                   
                 }
             }
 
@@ -1741,5 +1776,16 @@ namespace E3_WGM
             return umens_e3project;
         }
 
+        internal void getRestrictivProject()
+        {
+            restrictProject = job.GetAttributeValue("WCH_project_restrictive_list");
+
+            if (String.IsNullOrEmpty( restrictProject))
+            {
+                MessageBox.Show("Заполните атрибут «WCH Ограничительный перечень проекта» допустимым значением из выпадающего списка в параметрах проекта.", "",
+                               MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+
+        }
     }
 }

@@ -15,10 +15,13 @@ namespace E3_WGM
 
         static AttrsName()
         {
-            if (File.Exists("bomrs.json"))
+            string appDir = AppDomain.CurrentDomain.BaseDirectory;
+            string configFile = Path.Combine(appDir, "attrsname.json");
+
+            if (File.Exists(configFile))
             {
                 String jsonBomRS = "";
-                using (StreamReader streamReader = new StreamReader("attrsname.json"))
+                using (StreamReader streamReader = new StreamReader(configFile))
                 {
                     jsonBomRS = streamReader.ReadToEnd();
                 }

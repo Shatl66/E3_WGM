@@ -336,6 +336,7 @@ namespace E3_WGM
 
         /// <summary>
         /// Обновляет у нашей текущей Е3 сборки данные ее связей (все E3PartUsage) данными полученными из Windchill
+        /// Выполняет проверки и наполняет errorMessages
         /// </summary>
         /// <param name="asmWch"></param>
         /// <param name="errorMessages"></param>
@@ -386,16 +387,48 @@ namespace E3_WGM
 
 
 
+                // Start. Выполняем проверки качества :
                 if (wchUsagesDict.TryGetValue(currentKey, out E3PartUsage matchingUsageFromWch))
                 {
+                    String obj = !String.IsNullOrEmpty(matchingUsageFromWch.number) ? matchingUsageFromWch.number : matchingUsageFromWch.ATR_E3_ENTRY;
+
                     if (String.IsNullOrEmpty(matchingUsageFromWch.oidMaster))
-                    {
-                        String obj = !String.IsNullOrEmpty(matchingUsageFromWch.number) ? matchingUsageFromWch.number : matchingUsageFromWch.ATR_E3_ENTRY;
+                    {                        
                         if (!errorMessages.Contains($"Изделие {obj} не найдено в Windchill"))
                             errorMessages.Add($"Изделие {obj} не найдено в Windchill");
 
                         continue;
                     }
+
+                    String wchState = matchingUsageFromWch.State;
+                    if (wchState.Equals("Запрещено к применению") || wchState.Equals("Аннулировано") ||
+                        wchState.Equals("Снято с производства") || wchState.Equals("Ограничительный перечень"))
+                    {
+                        if (!errorMessages.Contains($"Изделие {obj} {wchState} в Windchill"))
+                            errorMessages.Add($"Изделие {obj} {wchState} в Windchill");
+
+                        //continue; поз. номер выводим !
+                    }
+
+
+                    if (matchingUsageFromWch.RS.Equals("Прочие изделия") || matchingUsageFromWch.RS.Equals("Стандартные изделия") || matchingUsageFromWch.RS.Equals("Материалы"))
+                    {
+                        String wchRestrict = matchingUsageFromWch.Restrict;
+                        String prjRestrict = E3WGMForm.UtilsInstance.restrictProject;
+                        Part part = E3WGMForm.UtilsInstance.umens_e3project.Parts.Find(x => x.number == matchingUsageFromWch.number);
+
+                        if (!prjRestrict.Equals("Без ограничений"))
+                        {
+                            if ( (prjRestrict.Equals("20") & !wchRestrict.Equals("20")) || (prjRestrict.Equals("30") & !wchRestrict.Equals("30")) )
+                            {
+                                if (!errorMessages.Contains($"{matchingUsageFromWch.number} {part.name} не входит в ограничительный перечень проекта {prjRestrict}"))
+                                    errorMessages.Add($"{matchingUsageFromWch.number} {part.name} не входит в ограничительный перечень проекта {prjRestrict}");
+                            }
+                        }
+
+                    }
+                    // End. проверок качества
+
 
                     // Добавляем данные полученные в Windchill
                     currentE3PartUsage.oidMaster = matchingUsageFromWch.oidMaster; // если по заполненному в Е3 number нашли объект в Windchill, то перенесем вычисленный oidMaster в Е3, пусть будет. 
@@ -403,6 +436,7 @@ namespace E3_WGM
                     currentE3PartUsage.unit = matchingUsageFromWch.unit;
                     //currentE3PartUsage.amount = matchingUsage.amount;
                     currentE3PartUsage.lineNumber = matchingUsageFromWch.lineNumber;
+                    currentE3PartUsage.RS = matchingUsageFromWch.RS;
 
                     if (matchingUsageFromWch.isUsageE3Cable())
                     {

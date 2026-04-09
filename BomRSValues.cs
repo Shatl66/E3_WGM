@@ -25,10 +25,13 @@ namespace E3_WGM
 
         static BomRSValues()
         {
-            if (File.Exists("bomrs.json"))
+            string appDir = AppDomain.CurrentDomain.BaseDirectory;
+            string configFile = Path.Combine(appDir, "bomrs.json");
+
+            if (File.Exists(configFile))
             {
                 String jsonBomRS = "";
-                using (StreamReader streamReader = new StreamReader("bomrs.json"))
+                using (StreamReader streamReader = new StreamReader(configFile))
                 {
                     jsonBomRS = streamReader.ReadToEnd();
                 }

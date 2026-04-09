@@ -34,12 +34,16 @@
             this.textBoxNameProject = new System.Windows.Forms.TextBox();
             this.textBoxNumberProject = new System.Windows.Forms.TextBox();
             this.button1 = new System.Windows.Forms.Button();
+            this.labelRestrict = new System.Windows.Forms.Label();
+            this.textBoxRestrict = new System.Windows.Forms.TextBox();
             this.StructureBrowserPanel.SuspendLayout();
             this.SuspendLayout();
             // 
             // StructureBrowserPanel
             // 
             this.StructureBrowserPanel.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.StructureBrowserPanel.Controls.Add(this.labelRestrict);
+            this.StructureBrowserPanel.Controls.Add(this.textBoxRestrict);
             this.StructureBrowserPanel.Controls.Add(this.labelNameProject);
             this.StructureBrowserPanel.Controls.Add(this.labelNumberProject);
             this.StructureBrowserPanel.Controls.Add(this.textBoxNameProject);
@@ -49,7 +53,7 @@
             this.StructureBrowserPanel.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
             this.StructureBrowserPanel.Location = new System.Drawing.Point(0, 0);
             this.StructureBrowserPanel.Name = "StructureBrowserPanel";
-            this.StructureBrowserPanel.Size = new System.Drawing.Size(618, 174);
+            this.StructureBrowserPanel.Size = new System.Drawing.Size(632, 234);
             this.StructureBrowserPanel.TabIndex = 3;
             // 
             // labelNameProject
@@ -75,6 +79,7 @@
             this.textBoxNameProject.Location = new System.Drawing.Point(252, 109);
             this.textBoxNameProject.Multiline = true;
             this.textBoxNameProject.Name = "textBoxNameProject";
+            this.textBoxNameProject.ReadOnly = true;
             this.textBoxNameProject.Size = new System.Drawing.Size(349, 50);
             this.textBoxNameProject.TabIndex = 2;
             // 
@@ -82,6 +87,7 @@
             // 
             this.textBoxNumberProject.Location = new System.Drawing.Point(252, 80);
             this.textBoxNumberProject.Name = "textBoxNumberProject";
+            this.textBoxNumberProject.ReadOnly = true;
             this.textBoxNumberProject.Size = new System.Drawing.Size(349, 23);
             this.textBoxNumberProject.TabIndex = 1;
             // 
@@ -97,13 +103,30 @@
             this.button1.UseVisualStyleBackColor = true;
             this.button1.Click += new System.EventHandler(this.buttonUploadProjectDoc_Click);
             // 
+            // labelRestrict
+            // 
+            this.labelRestrict.AutoSize = true;
+            this.labelRestrict.Location = new System.Drawing.Point(9, 165);
+            this.labelRestrict.Name = "labelRestrict";
+            this.labelRestrict.Size = new System.Drawing.Size(195, 17);
+            this.labelRestrict.TabIndex = 6;
+            this.labelRestrict.Text = "Ограничительный перечень";
+            // 
+            // textBoxRestrict
+            // 
+            this.textBoxRestrict.Location = new System.Drawing.Point(252, 165);
+            this.textBoxRestrict.Name = "textBoxRestrict";
+            this.textBoxRestrict.ReadOnly = true;
+            this.textBoxRestrict.Size = new System.Drawing.Size(349, 23);
+            this.textBoxRestrict.TabIndex = 5;
+            // 
             // E3ProjectBrowser
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Controls.Add(this.StructureBrowserPanel);
             this.Name = "E3ProjectBrowser";
-            this.Size = new System.Drawing.Size(618, 174);
+            this.Size = new System.Drawing.Size(632, 234);
             this.StructureBrowserPanel.ResumeLayout(false);
             this.StructureBrowserPanel.PerformLayout();
             this.ResumeLayout(false);
@@ -118,5 +141,7 @@
         private System.Windows.Forms.TextBox textBoxNumberProject;
         private System.Windows.Forms.Label labelNameProject;
         private System.Windows.Forms.Label labelNumberProject;
+        private System.Windows.Forms.Label labelRestrict;
+        private System.Windows.Forms.TextBox textBoxRestrict;
     }
 }

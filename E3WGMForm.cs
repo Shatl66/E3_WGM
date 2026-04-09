@@ -40,11 +40,15 @@ namespace E3_WGM
 
         private void E3WGMForm_Load(object sender, EventArgs e)
         {
+
+            string appDir = AppDomain.CurrentDomain.BaseDirectory;
+            string configFile = Path.Combine(appDir, "windchillserver.json");
+
             Dictionary<string, string> allWCHServer = new Dictionary<string, string>();
-            if (File.Exists("windchillserver.json"))
+            if (File.Exists( configFile))
             {
                 String jsonWCHServer = "";
-                using (StreamReader streamReader = new StreamReader("windchillserver.json"))
+                using (StreamReader streamReader = new StreamReader( configFile))
                 {
                     jsonWCHServer = streamReader.ReadToEnd();
                 }
@@ -65,10 +69,34 @@ namespace E3_WGM
             allWCHServer.TryGetValue("serverName", out serverName);
             allWCHServer.TryGetValue("ignoreSSLPolicyErrors", out ignoreSSLPolicyErrors);
 
-            allWCHServer.TryGetValue("tempPathForDoc", out tempPathForDoc);
-            _Utils.tempPathForDoc = tempPathForDoc;
+            string subfolderPath = Path.Combine(appDir, "TEMP");
+            Directory.CreateDirectory(subfolderPath); // создаст, если нет, иначе ничего не сделает
+            _Utils.tempPathForDoc = subfolderPath;
 
             wchHTTPClient = new WindchillHTTPClient(serverProtocol, serverName, Boolean.Parse(ignoreSSLPolicyErrors));
+
+            configFile = Path.Combine(appDir, "doctype.json");
+            Dictionary<string, string> typeDocuments = new Dictionary<string, string>();
+            if (File.Exists(configFile))
+            {
+                String jsonDocType = "";
+                using (StreamReader streamReader = new StreamReader(configFile))
+                {
+                    jsonDocType = streamReader.ReadToEnd();
+                }
+
+                using (MemoryStream stream = new MemoryStream(Encoding.UTF8.GetBytes(jsonDocType)))
+                {
+                    DataContractJsonSerializerSettings settings = new DataContractJsonSerializerSettings();
+                    settings.UseSimpleDictionaryFormat = true;
+                    DataContractJsonSerializer ser = new DataContractJsonSerializer(typeof(Dictionary<string, string>), settings);
+                    typeDocuments = ser.ReadObject(stream) as Dictionary<string, string>;
+                }
+            }
+            _Utils.typeDocuments = typeDocuments;
+
+
+
 
             // Подписываем E3WGMForm на событие синхронизации генерируемое кнопкой "Синхронизация"
             e3CommonControl1.SynchronizeClicked += E3CommonControl1_SynchronizeClicked;
@@ -76,9 +104,11 @@ namespace E3_WGM
             UmensLogger.LogControl = E3Log;
 
             public_umens_e3project = new E3Assembly("Temp_Number", "Temp_Name");
-            _Utils.umens_e3project = public_umens_e3project;
+            _Utils.umens_e3project = public_umens_e3project; 
 
             _Utils.ConnectToE3Series();
+            // _Utils.getRestrictivProject(); без выхода из приложения тут не считает новое значение
+
             public_umens_e3project = CreateAndFillUmensE3Project();
             _Utils.DisconnectFromE3Series(); // После вычисления всех данных "отключается" от Е3 чтобы пользователь Е3 мог в нем полноценно работать
 
@@ -91,7 +121,8 @@ namespace E3_WGM
         {
             // перед каждой синхронизацией очищаем:
             _Utils.errorMessages = new List<string>();
-            _Utils.numberPartsForE3ProjectDocument = new List<string>(); 
+            _Utils.numberPartsForE3ProjectDocument = new List<string>();
+            _Utils.getRestrictivProject();
 
 
             if (_Utils.FindAllWTPartsFromSelectedFolder())

@@ -319,10 +319,19 @@ namespace E3_WGM
             {
                 Directory.CreateDirectory(filePath);
             }
-            String pdfPath = filePath + fileName;
-            if ( job.ExportPDF(pdfPath, dSheetIds.Values.ToArray(), 0 + 16 + 4096, null) == 0)
+            
+            string pdfPath = Path.Combine(filePath, fileName);
+
+            if (E3WGMForm.UtilsInstance.app.GetLicensePermanent("E3pdf") == 1)
             {
-                throw new Exception("ОШИБКА: Не удалось выполнить экспорт в PDF документа " + number);
+                if (job.ExportPDF(pdfPath, dSheetIds.Values.ToArray(), 0 + 16 + 4096, null) == 0)
+                {
+                    throw new Exception("ОШИБКА: Не удалось выполнить в E3 экспорт PDF документа " + number);
+                }
+            }
+            else
+            {
+                throw new Exception("В E3 отсутствует доступная лицензия на экспорт документа в формате PDF");
             }
         }
     }

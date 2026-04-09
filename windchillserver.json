@@ -3,6 +3,5 @@
   "serverName": "wch-test.peleng.jsc.local",
   "ignoreSSLPolicyErrors": "true",
   "useRefLinkForDocumentation": "false",
-  "allowUnloadStructure": "true",
-  "tempPathForDoc": "C:/E3/Temp/"
+  "allowUnloadStructure": "true"
 }

@@ -192,11 +192,13 @@ namespace E3_WGM.BOMBrowser
             {
                 // partItem доступна ТОЛЬКО здесь
                 partItem.Amount = usage.amount.ToString();
+                partItem.Tolerance = usage.Tolerance.ToString();
                 partItem.Unit = usage.unit;                
                 partItem.RefDes = usage.RefDes;                
                 partItem.LineNumber = usage.lineNumber.ToString();
                 partItem.Replacement = usage.Replacements.Count > 0 ? "R" : "";
                 partItem.Replacements = usage.Replacements;
+                partItem.ATR_BOM_RS = usage.RS;
             }
             else if (item is AsmItem asmItem)
             {
