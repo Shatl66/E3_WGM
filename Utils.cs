@@ -41,6 +41,12 @@ namespace E3_WGM
 
         public Dictionary<string, string> typeDocuments = null; // устанавливается из E3WGMForms.cs
 
+        public List<int> pinIDsTerminal = new List<int>(); // перечень ID пинов изделий у которых есть cavity объекты типа Заглушка
+        public Dictionary<string, List<int>> pairesNumberTerminalCavityToPinIDs = new Dictionary<string, List<int>>(); //пары: обозначение Заглушки - ID пинов где назначена Заглушка
+
+        public List<int> pinIDsSeal = new List<int>(); // перечень ID пинов изделий у которых есть cavity объекты типа Уплотнитель
+        public Dictionary<string, List<int>> pairesNumberSealCavityToPinIDs = new Dictionary<string, List<int>>(); //пары: обозначение Уплотнителя - ID пинов где назначен Уплотнитель
+
         public Utils()
         {
             //ConnectToE3Series();
@@ -716,7 +722,7 @@ namespace E3_WGM
 
 
         /// <summary>
-        /// <para>Обрабатывает все пины с целью нахождения всех жил подключенных к ним.</para>
+        /// <para>Обрабатывает все пины изделия с целью нахождения всех жил подключенных к ним.</para>
         /// <para>Цель - обнаружить провода которых нет возможности вынести на СБ чертеж (заземление), но которые нужны в ЭСИ</para>
         /// При обработке сегментов цепи, как это делается в другом месте этого класса, эти провода не обнаруживаются.
         /// </summary>
@@ -726,6 +732,7 @@ namespace E3_WGM
             e3Pin core = job.CreatePinObject();
             e3Device dev = job.CreateDeviceObject(); //это Кабель или Одиночный провод к которому принадлежит жила.
             int coreId, pinIdIzdelie, devId;
+            e3CavityPart cavity = job.CreateCavityPartObject();
 
             try
             {                
@@ -735,6 +742,72 @@ namespace E3_WGM
                 for (int j = 1; j <= nAllPin; j++)
                 {
                     pinIdIzdelie = pinIzdelie.SetId(sAllPinIds[j]);
+
+                    // сначала гарантированно обнуляем эти атрибуты у всех пинов изделий
+                    pinIzdelie.SetAttributeValue("TipPosition", "0"); 
+                    pinIzdelie.SetAttributeValue("SealerPosition", "0");
+
+                    // Start наполнения списков pairesNumberTerminalCavityToPinIDs и pairesNumberSealCavityToPinIDs. 
+                    // Эти списки будут позже использоваться для заполнения атрибутов пинов изделий номерами позиций Заглушек и Уплотнителей из ЭСИ
+
+                    // Ситуация - 21 провод входит в вилку на 20 контактов.
+                    // ВАЖНО. Тут cavity находятся от контактов, в отличие от кода в AddCavityOfCable(), где они находятся от жил. В итоге тут и там находится разное количество                    
+                    // cavity объектов (в тестовом проекте разница на 1 шт.).
+                    // Ответ Данилы - Правильно так как говорит заказчик)) уплотнители по количеству проводов... UniSP можно настроить и на провода, а не на выводы.
+                    dynamic cavities = null;
+                    int nTerminalCavityes = pinIzdelie.GetCavityPartIds(out cavities, 1); // ,1 - Ищем Заглушки назначенные пину изделия
+                    
+                    for (int k = 1; k <= nTerminalCavityes; k++)
+                    {
+                        int cavId = cavity.SetId(cavities[k]);
+                        if (cavId != 0)
+                        {
+                            //Console.WriteLine("TERMINAL cavity" + "\t " + cavity.GetValue());
+                            app.PutInfo(0, $" TERMINAL cavity {cavity.GetValue()}, пин {pinIzdelie.GetName()}", pinIdIzdelie);
+
+                            if (String.IsNullOrEmpty(cavity.GetValue()))
+                                continue;
+
+                            if (pairesNumberTerminalCavityToPinIDs.TryGetValue(cavity.GetValue(), out var terminalIds))
+                            {
+                                if( !terminalIds.Contains( cavId))
+                                    terminalIds.Add(cavId);
+                            }
+                            else
+                            {
+                                terminalIds = new List<int> { cavId };
+                                pairesNumberTerminalCavityToPinIDs.Add(cavity.GetValue(), terminalIds);
+                            }
+                        }
+                    }
+
+                    cavities = null;
+                    int nSealCavityes = pinIzdelie.GetCavityPartIds(out cavities, 2); // ,2 - Ищем Уплотнители назначенные пину изделия
+
+                    for (int k = 1; k <= nSealCavityes; k++)
+                    {
+                        int cavId = cavity.SetId(cavities[k]);
+                        if (cavId != 0)
+                        {                            
+                            app.PutInfo(0, $" SEAL cavity {cavity.GetValue()}, пин {pinIzdelie.GetName()}", pinIdIzdelie);
+
+                            if (String.IsNullOrEmpty(cavity.GetValue()))
+                                continue;
+
+                            if (pairesNumberSealCavityToPinIDs.TryGetValue(cavity.GetValue(), out var sealIds))
+                            {
+                                if( !sealIds.Contains( cavId))
+                                    sealIds.Add(cavId);
+                            }
+                            else
+                            {
+                                sealIds = new List<int> { cavId };
+                                pairesNumberSealCavityToPinIDs.Add(cavity.GetValue(), sealIds);
+                            }
+                        }
+                    }
+                 // End наполнения списков
+
 
                     dynamic sAllCoreIds = null;
                     int coreCount = pinIzdelie.GetCoreIds(ref sAllCoreIds);
@@ -746,7 +819,7 @@ namespace E3_WGM
                     {
                         coreId = sAllCoreIds[k];
                         core.SetId(coreId);
-                        //app.PutInfo(0, $"     Имя провода {core.GetName()}", core.GetId());
+                     app.PutInfo(0, $" pinIzdelie {pinIzdelie.GetName()}    Имя провода {core.GetName()}", core.GetId());
                         devId = dev.SetId(coreId); // где dev это Кабель к которому принадлежит жила.
 
 
@@ -1420,11 +1493,50 @@ namespace E3_WGM
                 MemoryStream stream2 = new MemoryStream(Encoding.UTF8.GetBytes(jsonAssemblyFromWindchill));
                 DataContractJsonSerializer ser2 = new DataContractJsonSerializer(typeof(E3Assembly), settings);
                 E3Assembly assmWch = (E3Assembly)ser2.ReadObject(stream2);
-                assm.merge(assmWch, errorMessages, job); // в подметоде наполняется список ошибок, формируется значение атрибута "суммарная позиция"
+                assm.merge( assmWch, errorMessages, job); // в подметоде наполняется список ошибок, формируется значение атрибута "суммарная позиция"
+                fillPinAttrsByLineNumber( assmWch);
             }
             catch (Exception ex)
             {
                 UmensLogger.Log($"Синхронизация сборки {assm.number}. Сообщение Windchill: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Заполняет у контактов(выводов) изделий атрибуты "Позиция наконечника" и "Позиция уплотнителя" значением номера позиции наконечника или уплотнителя в спецификации
+        /// </summary>
+        /// <param name="assmWch"></param>
+        private void fillPinAttrsByLineNumber(E3Assembly assmWch)
+        {
+            e3Pin pinIzdelie = job.CreatePinObject();
+            String number;
+            int lineNumber;
+
+            foreach (var wchUsage in assmWch.Usages)
+            {
+                number = wchUsage.number;
+                lineNumber = wchUsage.lineNumber;
+
+                if (pairesNumberTerminalCavityToPinIDs.TryGetValue(number, out var terminalIds))
+                {   
+                    foreach( int pinID in terminalIds)
+                    {
+                        int id = pinIzdelie.SetId(pinID);
+                        pinIzdelie.SetAttributeValue("TipPosition", lineNumber.ToString()); 
+                    }
+                    
+                }
+
+                if (pairesNumberSealCavityToPinIDs.TryGetValue(number, out var sealIds))
+                {
+                    foreach (int pinID in sealIds)
+                    {
+                        int id = pinIzdelie.SetId(pinID);
+                        pinIzdelie.SetAttributeValue("SealerPosition", lineNumber.ToString());
+                    }
+
+                }
+
             }
         }
 
