@@ -131,6 +131,7 @@ namespace E3_WGM
         /// <param name="dev"></param>
         /// <param name="e3Part"></param>
         /// <param name="deltaAmount"></param>
+        /// <param name="incrAmount">соответствует RS изделия. false - значит RS "отсутствует"</param>
         /// <returns></returns>
         internal E3PartUsage AddUsage(e3Device dev, E3Part e3Part, out double deltaAmount, Boolean incrAmount)
         {
@@ -146,40 +147,13 @@ namespace E3_WGM
             {
                 usage = _usages.Find(x => x.idComp == e3Part.ID);
             }
+
             usage.addID(dev.GetId());
+
 
             if (e3Part.ATR_BOM_RS.Equals(BomRSValues.getBomRSValue((int)BomRSEnum.MATERIAL)))
             {
-                // Код ниже рабочий, но является дублем расчета объектов лежащих на сегменте ( managerFindParts() 2. ). Да и эти атрибуты уже не используются.
-                /*
-                usage.unit = "m";
-                double amount = 0;                
-                if (!String.IsNullOrEmpty(dev.GetAttributeValue(AttrsName.getAttrsName("length"))))
-                {
-                    string length = dev.GetAttributeValue(AttrsName.getAttrsName("length"));
-                    if (!String.IsNullOrEmpty(length))
-                    {
-                        if (length.Contains(" "))
-                        {
-                            amount = Double.Parse(length.Split(' ')[0].Replace('.', ','));
-                        }
-                        else
-                        {
-                            amount = Double.Parse(length.Replace('.', ','));
-                        }
-                    }
-                }
-                else if (!String.IsNullOrEmpty(dev.GetAttributeValue(AttrsName.getAttrsName("dlina"))))
-                {
-                    amount = Double.Parse(dev.GetAttributeValue(AttrsName.getAttrsName("dlina")).Replace('.', ','));
-                }
 
-                if (incrAmount == true) //TODO протестировать ! Пока чисто теоретически, это нужно проверять !
-                {
-                    amount = amount / 1000;
-                    usage.AddAmount(amount);
-                }
-                */
             }
             else
             {
@@ -455,23 +429,38 @@ namespace E3_WGM
         /// т.е. в этот атрибут заносятся позиции самого Изделия + позиции всех Дополнительных частей указанных в этом Изделии.
         /// Е3 "знает" об атрибуте "Суммарная позиция" и вынесет на СБ чертеж у Изделия одну общую выноску с несколькими полочками для позиций.
         /// </summary>
-        /// <exception cref="NotImplementedException"></exception>
         private void updateSumPosInUsages(e3Job job)
         {
+            e3Device dev = job.CreateDeviceObject();
             int devLineNumber = 0;
             String tempLineNumber;
+            bool necesseryValue = false;
+            List<int> listReplacementsAddPart; // список для взаимозамен в 150% BOM
+            String currentDevRS;
 
+
+            // 1. вычисляем данные для суммарной позиции
             foreach (E3PartUsage currentE3PartUsage in _usages)
             {
                 if (currentE3PartUsage.parentIDs.Count > 0)
-                    continue; // имеем дело с E3PartUsage Дополнительной части, а нам нужны Изделия непосредственно расположенные на СБ чертеже
+                    continue; // имеем дело с E3PartUsage Дополнительных частей (доп.части, замены, cavity), а нам нужны Изделия непосредственно расположенные на СБ чертеже
 
-                foreach (int itemId in currentE3PartUsage.IDs) // на СБ чертеже Изделие может встречаться несколько раз (разные Поз.обозначения)
+                foreach (int itemId in currentE3PartUsage.IDs) // на СБ чертеже Изделие может встречаться несколько раз (разные Поз.обозначения) и могут быть с RS "Отсутствует"
                 {
                     tempLineNumber = "";
                     List<int> lineNumbers = new List<int>();
+                    
+                    
+                    dev.SetId(itemId);
+                    currentDevRS = dev.GetAttributeValue(AttrsName.getAttrsName("atrBomRs"));
 
-                    if (currentE3PartUsage.isForBOM == true)
+                    // Придумка Пеленга о 150% BOM. Проверяем их признак, т.е. в ЭСИ будет несколько записей с 0 количеством и ЕИ "По необходимости"
+                    listReplacementsAddPart = new List<int>();
+                    necesseryValue = dev.GetAttributeValue("IfNecessary") == "1" ? true : false;
+
+
+                    //if (currentE3PartUsage.isForBOM == true)
+                    if (!currentDevRS.Equals(BomRSValues.getBomRSValue((int)BomRSEnum.NO))) // т.е. у текущего изделия RS НЕ равен "Отсутствует"
                     {
                         devLineNumber = currentE3PartUsage.lineNumber;
                         lineNumbers.Add(devLineNumber); // Запомнили Позицию самого Изделия
@@ -481,14 +470,31 @@ namespace E3_WGM
                     {
                         if (usageWithParent.parentIDs.Contains(itemId))
                         {
-                            if (!lineNumbers.Contains(usageWithParent.lineNumber))
+                            if (necesseryValue == false) // у device обычные доп.части
                             {
-                                lineNumbers.Add(usageWithParent.lineNumber); // Добавили Позицию Дополнительной части 
+                                if (!lineNumbers.Contains(usageWithParent.lineNumber))
+                                {
+                                    lineNumbers.Add(usageWithParent.lineNumber); // Добавили Позицию Дополнительной части 
+                                }
+                            }
+                            else
+                            {
+                                listReplacementsAddPart.Add(usageWithParent.lineNumber); // накапливаем, чтобы потом сделать типа "15 или 16"
                             }
                         }
                     }
 
-                    tempLineNumber = string.Join(" \r\n", lineNumbers.OrderBy(x => x)); // строка с упорядоченными по возрастанию номерами позиций и по правилу Е3, каждый номер должен располагаться строчкой ниже
+
+                    // 2. Заносим данные в атрибуты
+
+                    if (necesseryValue == false)  // у device обычные доп.части
+                    {
+                        tempLineNumber = string.Join(" \r\n", lineNumbers.OrderBy(x => x)); // упорядочивает номера позиций по возрастанию и по правилу Е3, каждый номер должен располагаться строчкой ниже
+                    }
+                    else
+                    {
+                        tempLineNumber = string.Join(" или ", listReplacementsAddPart.OrderBy(x => x)); // Номера у самого Изделия нет, т.к. оно фэйковое и создано для 150% ЭСИ
+                    }
 
 
                     // переходим к Изделию у которого в атрибут "Суммарная позиция" и занесем рассчитанное значение.
@@ -501,8 +507,8 @@ namespace E3_WGM
                     }
                     else
                     {
-                        e3Device dev = job.CreateDeviceObject();
-                        dev.SetId(itemId);
+                        //e3Device dev = job.CreateDeviceObject();
+                        //dev.SetId(itemId);
                         dev.SetAttributeValue("BOMpos", devLineNumber.ToString()); //TODO это "Позиция спецификации". Надо ли вообще => добавить в attrsname.json
                         dev.SetAttributeValue(AttrsName.getAttrsName("lineNumber"), tempLineNumber); // В Е3 у "родительского" компонента будет выведена общая выноска с позициями 
                     }

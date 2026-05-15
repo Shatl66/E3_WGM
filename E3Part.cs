@@ -15,10 +15,18 @@ namespace E3_WGM
     {
         [DataMember]
         private int _id = -1;
-        public int ID
+        public int ID   //TODO Это ID Компонента в БД. Надо бы от него избавиться в пользу использования IDs для унификации кодов работы с E3Part и E3Cable
         {
             get { return _id; }
             set { _id = value; }
+        }
+
+
+        private List<int> _ids = new List<int>();
+        public List<int> IDs // перечень ID используемых на СБ чертеже/ах Изделий типа Компонент
+        {
+            get { return _ids; }
+            set { }
         }
 
         [DataMember]

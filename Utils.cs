@@ -309,7 +309,7 @@ namespace E3_WGM
                     dynamic sAllCoreIds = null;
                     int coreCount = netSegment.GetCoreIds(ref sAllCoreIds);
                     
-                    //app.PutInfo(0, $" Net Segment {netSegment.GetName()}. Core {coreCount}", netSegment.GetId());
+                app.PutInfo(0, $" Net Segment {netSegment.GetName()}. Core {coreCount}", netSegment.GetId());
 
                     // 2.1.2 Определяем к чему относится жила: к одиночному проводу, или к кабелю
                     for (int j = 1; j <= coreCount; j++)
@@ -324,7 +324,7 @@ namespace E3_WGM
                             ProcessCable(dev, pin, tolerance, netSegment.GetId()); // обрабатываем кабель
                         }
                         else {
-                            ProcessCore(pin, tolerance); // обрабатываем одиночный провод
+                            ProcessCore(pin, tolerance, 0); // обрабатываем одиночный провод. 0 - не знаем от какого изделия идет этот провод
                         }
 
                     }
@@ -460,16 +460,23 @@ namespace E3_WGM
             {
                 E3Part part = null;
                 Boolean incrAmount = true;
+                Boolean isFoundInParts = false;
+
+                // ИЗДЕЛИЕ с RS "Отсутствует", не КОМПОНЕНТА ! Добавляем в Parts ! А в показе в WGM и передаче в Windchill будем исключать такие СЧ !!!
+                String currentDevRS = dev.GetAttributeValue(AttrsName.getAttrsName("atrBomRs"));
+
 
                 // ищем сначала в кэше
-                part = (E3Part)umens_e3project.Parts.Find(x => (x is E3Part) && (x as E3Part).ID == comp.GetId());
+                part = (E3Part)umens_e3project.Parts.Find(x => (x is E3Part) && (x as E3Part).ID == comp.GetId()); //TODO ВНИМАНИЕ в Parts в ID Андрей заносит ID КОМПОНЕНТА, т.е. ID из БД !!!
 
                 if ( part == null)
                 {
-                    part = new E3Part(comp);
+                    isFoundInParts = false;
 
-                    // ИЗДЕЛИЕ с RS "Отсутствует", не КОМПОНЕНТА ! Добавляем в Parts ! А в показе в WGM и передаче в Windchill будем исключать такие СЧ !!!
-                    if (dev.GetAttributeValue(AttrsName.getAttrsName("atrBomRs")).Equals(BomRSValues.getBomRSValue((int)BomRSEnum.NO)))
+                    part = new E3Part(comp);
+                    part.IDs.Add(dev.GetId());
+                    
+                    if ( currentDevRS.Equals(BomRSValues.getBomRSValue((int)BomRSEnum.NO)))
                     {
                         Console.WriteLine(part.number + " RS Отсутствует !");
                         part.isForBOM = false;
@@ -480,11 +487,20 @@ namespace E3_WGM
                 }
                 else
                 {
-                    String currentDevRS = dev.GetAttributeValue(AttrsName.getAttrsName("atrBomRs"));
+                    if (!part.IDs.Contains(dev.GetId()))
+                    {
+                        isFoundInParts = false;
+                        part.IDs.Add(dev.GetId());
+                    }
+                    else
+                    {
+                        isFoundInParts = true;
+                    }
+
+                    
                     if( !currentDevRS.Equals(BomRSValues.getBomRSValue((int)BomRSEnum.NO))) // т.е. RS НЕ равен "Отсутствует"
                     {
                         part.isForBOM = true; // первое такое изделие встретившееся на СБ чертеже и попавшее в Parts, возможно было isForBOM = false. А теперь его всеже нужно показывать в ЭСИ
-                        //E3PartUsage usage = umens_e3project.Usages.Find(x => x.number == part.number);
                     }
                     else
                     {
@@ -496,10 +512,13 @@ namespace E3_WGM
                 E3PartUsage usage = assemblyForPartsFromShemas.AddUsage(dev, part, out deltaAmount, incrAmount);
                 usage.isForBOM = part.isForBOM; // если СЧ все же показывать (смотри коммент чуть выше), то это же значение нужно задать и тут
 
-                AddReplacements(dev, usage);
-                AddAdditionalParts(dev, assemblyForPartsFromShemas, deltaAmount);
-
-                ProcessPins(dev);
+                if (isFoundInParts == false)
+                {
+                    AddReplacements(dev, usage);
+                    AddAdditionalParts(dev, assemblyForPartsFromShemas, deltaAmount);
+                    ProcessPins(dev);
+                }
+                //ProcessPins(dev);
             }
             catch (Exception ex)
             {
@@ -723,8 +742,9 @@ namespace E3_WGM
 
         /// <summary>
         /// <para>Обрабатывает все пины изделия с целью нахождения всех жил подключенных к ним.</para>
-        /// <para>Цель - обнаружить провода которых нет возможности вынести на СБ чертеж (заземление), но которые нужны в ЭСИ</para>
-        /// При обработке сегментов цепи, как это делается в другом месте этого класса, эти провода не обнаруживаются.
+        /// <para>Цель 1 - обнаружить провода которых нет возможности вынести на СБ чертеж (заземление), но которые нужны в ЭСИ</para>
+        /// (При обработке сегментов цепи, как это делается в другом месте этого класса, эти провода не обнаруживаются)
+        /// <para>Цель 2 - Найти и обработать все cavity объекты</para>
         /// </summary>
         private void ProcessPins(e3Device devIzdelie)
         {
@@ -743,17 +763,20 @@ namespace E3_WGM
                 {
                     pinIdIzdelie = pinIzdelie.SetId(sAllPinIds[j]);
 
+
+                    // Ситуация - 21 провод входит в вилку на 20 контактов.
+                    // Ответ Данилы - Правильно так как говорит заказчик)), а Пеленг просит считать уплотнители по проводам... UniSP можно настроить и на провода, а не на выводы.
+                    dynamic sCoreIds = null;
+                    int countCore = pinIzdelie.GetCoreIds( sCoreIds);
+                    AddCavityOfCable(pinIzdelie, devIzdelie.GetId(), countCore);
+
+
                     // сначала гарантированно обнуляем эти атрибуты у всех пинов изделий
                     pinIzdelie.SetAttributeValue("TipPosition", "0"); 
                     pinIzdelie.SetAttributeValue("SealerPosition", "0");
 
                     // Start наполнения списков pairesNumberTerminalCavityToPinIDs и pairesNumberSealCavityToPinIDs. 
                     // Эти списки будут позже использоваться для заполнения атрибутов пинов изделий номерами позиций Заглушек и Уплотнителей из ЭСИ
-
-                    // Ситуация - 21 провод входит в вилку на 20 контактов.
-                    // ВАЖНО. Тут cavity находятся от контактов, в отличие от кода в AddCavityOfCable(), где они находятся от жил. В итоге тут и там находится разное количество                    
-                    // cavity объектов (в тестовом проекте разница на 1 шт.).
-                    // Ответ Данилы - Правильно так как говорит заказчик)) уплотнители по количеству проводов... UniSP можно настроить и на провода, а не на выводы.
                     dynamic cavities = null;
                     int nTerminalCavityes = pinIzdelie.GetCavityPartIds(out cavities, 1); // ,1 - Ищем Заглушки назначенные пину изделия
                     
@@ -803,7 +826,7 @@ namespace E3_WGM
                             {
                                 sealIds = new List<int> { cavId };
                                 pairesNumberSealCavityToPinIDs.Add(cavity.GetValue(), sealIds);
-                            }
+                            }                            
                         }
                     }
                  // End наполнения списков
@@ -829,7 +852,7 @@ namespace E3_WGM
                         }
                         else if (dev.IsCable() == 1 & dev.IsOverbraid() == 1)
                         {
-                            ProcessCore(core, 0); // обрабатываем одиночный провод
+                            ProcessCore(core, 0, devIzdelie.GetId()); // обрабатываем одиночный провод
                         }
                     }
                 }
@@ -877,7 +900,7 @@ namespace E3_WGM
         /// <para>Если Раздел спецификации "Отсутствует", то пропускаем обработку этого провода</para>
         /// <para>Иначе. Добавляет провод к нашей ЭСИ и определяет его длину. Находит Cavity объекты связанные с проводом и добавляет их в нашу ЭСИ</para>
         /// </summary>
-        private void ProcessCore(e3Pin pin, double tolerance)
+        private void ProcessCore(e3Pin pin, double tolerance, int izdelieID)
         {
             if (pin.GetAttributeValue(AttrsName.getAttrsName("atrBomRs")).Equals(BomRSValues.getBomRSValue((int)BomRSEnum.NO)))
             {
@@ -896,7 +919,8 @@ namespace E3_WGM
                 if (!cable.IDs.Contains(pin.GetId())) // проверяем обработали ли мы уже эту жилу
                 {
                     // 1. Обрабатываем у жилы возможные объекты Cavity
-                    AddCavityOfCable(pin, cable);
+                    //AddCavityOfCable( pin, izdelieID);
+
                     cable.IDs.Add(pin.GetId());
 
                     // 2.                     
@@ -943,7 +967,7 @@ namespace E3_WGM
                 // 1. Обрабатываем у жилы возможные объекты Cavity
                 if (!cable.IDs.Contains( pin.GetId())) // проверяем обработали ли мы уже эту жилу у нашего кабеля
                 {                    
-                    AddCavityOfCable(pin, cable);
+                    //AddCavityOfCable( pin, devCable.GetId());
                     cable.IDs.Add( pin.GetId()); // !!! в IDs кабеля заношу как Id самого кабеля, так и ID его жил, так и ID сегментов сети !!!
                 }
 
@@ -1057,12 +1081,13 @@ namespace E3_WGM
 
 
         /// <summary>
-        /// Для каждого отдельного куска одного и того же провода находит его cavity (уплотнители, наконечники, заглушки, ...)
+        /// Находит cavity (уплотнители, наконечники, заглушки, ...) от контакта (пина) изделия
         /// и добавляет их в нашу ЭСИ
         /// </summary>
-        /// <param name="pin"></param>
-        /// <param name="cable"></param>
-        private void AddCavityOfCable( e3Pin pin, E3Cable cable)
+        /// <param name="pin">Пин изделия</param>
+        /// <param name="izdelieID">Само изделие. Номер позиции Сavity должен выводиться на выноске в СБ чертеже от этого изделия</param>
+        /// <param name="countCore">число проводов подключенных к пину изделия. На Пеленге число cavity объектов считается от проводов, а не от числа контактов изделия.</param>
+        private void AddCavityOfCable( e3Pin pin, int izdelieID, int countCore)
         {
             e3CavityPart cavity = job.CreateCavityPartObject();
             String numberCavityPart = "";
@@ -1074,8 +1099,7 @@ namespace E3_WGM
             {
                 int cavId = cavity.SetId(cavities[k]);
                 if (cavId != 0)
-                {
-                    Console.WriteLine("cavity" + "\t " + cavity.GetValue());
+                {                    
                     if (string.IsNullOrEmpty(cavity.GetValue()))
                         continue;
 
@@ -1110,9 +1134,10 @@ namespace E3_WGM
                             // материала в качестве CAVITY наверное не бывает и сюда код не зайдет
                             usage = assemblyForPartsFromShemas.AddOrGetUsage(cavityPart, "m");
                         }
+                        
+                        usage.amount = usage.amount + countCore; //usage.amount++;
+                        usage.addParentID( izdelieID);
 
-                        usage.amount++;
-                        usage.addParentID( pin.GetId());
                     }
                     catch (Exception e)
                     {
@@ -1200,7 +1225,8 @@ namespace E3_WGM
 
 
         /// <summary>
-        /// Метод для добавления дополнительных частей
+        /// <para>1.Метод для добавления дополнительных частей</para>
+        /// 2.Формирует взаимозамены для 150% ЭСИ
         /// </summary>
         private void AddAdditionalParts(e3Device dev, E3Assembly assembly, double deltaAmountHostDevice)
         {
@@ -1209,6 +1235,8 @@ namespace E3_WGM
                 String numberAddPart = "";
                 double amountAddPart = 1.0;
                 e3Attribute attribute = job.CreateAttributeObject();
+                bool necesseryValue = false;
+                List<string> listReplacementsAddPart = new List<string>(); // список для взаимозамен в 150% BOM
 
                 if (!E3WGMForm.wchHTTPClient.isAuthorization())
                 {
@@ -1222,8 +1250,28 @@ namespace E3_WGM
                 }
 
 
+                // Придумка Пеленга о 150% BOM. Проверяем их признак, т.е. в ЭСИ будет несколько записей с 0 количеством и ЕИ "По необходимости" 
+                necesseryValue = dev.GetAttributeValue("IfNecessary") == "1" ? true : false;
+
+
                 dynamic attributeIds = null;
-                int nAllValues = dev.GetAttributeIds(ref attributeIds, "AdditionalPart");                
+                int nAllValues = dev.GetAttributeIds(ref attributeIds, "AdditionalPart");
+
+                // 1-ый проход если это придумка Пеленга о 150% BOM
+                if (necesseryValue == true) 
+                { 
+                    for (int i = 1; i <= nAllValues; i++) // Накапливаем список для построения взаимозамен между доп. частями
+                    {
+                        attribute.SetId(attributeIds[i]);
+                        String valueAttr = attribute.GetValue();
+                        ParseValueAttr(valueAttr, out numberAddPart, out amountAddPart);
+
+                        listReplacementsAddPart.Add(numberAddPart);
+                    }
+                }
+
+
+                // 2-ой проход
                 for (int i = 1; i <= nAllValues; i++) // считываем по очереди все значения многозначного атрибута "AdditionalPart"
                 {
                     attribute.SetId( attributeIds[i]);
@@ -1234,6 +1282,9 @@ namespace E3_WGM
                         try
                         {
                             ParseValueAttr(valueAttr, out numberAddPart, out amountAddPart);
+                            
+                            if (necesseryValue == true)
+                                amountAddPart = 0;
                         }
                         catch (Exception ex)
                         {
@@ -1279,6 +1330,16 @@ namespace E3_WGM
 
                             usage.amount = usage.amount + deltaAmountHostDevice * amountAddPart;
                             usage.addParentID(dev.GetId());
+
+                            if (necesseryValue == true)
+                            {
+                                foreach ( String replNumber in listReplacementsAddPart)
+                                {
+                                    if(!replNumber.Equals(numberAddPart)) // на саму себя замену не назначаем, на все остальные - да.
+                                        usage.Replacements.Add(replNumber);
+                                }                                
+                            }
+
                         }
                         catch (Exception e)
                         {
