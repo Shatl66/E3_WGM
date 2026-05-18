@@ -460,7 +460,7 @@ namespace E3_WGM
             {
                 E3Part part = null;
                 Boolean incrAmount = true;
-                Boolean isFoundInParts = false;
+                Boolean isFoundInPartsInIDs = false;
 
                 // ИЗДЕЛИЕ с RS "Отсутствует", не КОМПОНЕНТА ! Добавляем в Parts ! А в показе в WGM и передаче в Windchill будем исключать такие СЧ !!!
                 String currentDevRS = dev.GetAttributeValue(AttrsName.getAttrsName("atrBomRs"));
@@ -471,7 +471,7 @@ namespace E3_WGM
 
                 if ( part == null)
                 {
-                    isFoundInParts = false;
+                    isFoundInPartsInIDs = false;
 
                     part = new E3Part(comp);
                     part.IDs.Add(dev.GetId());
@@ -489,12 +489,12 @@ namespace E3_WGM
                 {
                     if (!part.IDs.Contains(dev.GetId()))
                     {
-                        isFoundInParts = false;
+                        isFoundInPartsInIDs = false;
                         part.IDs.Add(dev.GetId());
                     }
                     else
                     {
-                        isFoundInParts = true;
+                        isFoundInPartsInIDs = true;
                     }
 
                     
@@ -512,7 +512,7 @@ namespace E3_WGM
                 E3PartUsage usage = assemblyForPartsFromShemas.AddUsage(dev, part, out deltaAmount, incrAmount);
                 usage.isForBOM = part.isForBOM; // если СЧ все же показывать (смотри коммент чуть выше), то это же значение нужно задать и тут
 
-                if (isFoundInParts == false)
+                if (isFoundInPartsInIDs == false)
                 {
                     AddReplacements(dev, usage);
                     AddAdditionalParts(dev, assemblyForPartsFromShemas, deltaAmount);
@@ -776,9 +776,9 @@ namespace E3_WGM
                     pinIzdelie.SetAttributeValue("SealerPosition", "0");
 
                     // Start наполнения списков pairesNumberTerminalCavityToPinIDs и pairesNumberSealCavityToPinIDs. 
-                    // Эти списки будут позже использоваться для заполнения атрибутов пинов изделий номерами позиций Заглушек и Уплотнителей из ЭСИ
+                    // Эти списки будут позже использоваться для заполнения атрибутов пинов изделий номерами позиций Наконечников и Уплотнителей из ЭСИ
                     dynamic cavities = null;
-                    int nTerminalCavityes = pinIzdelie.GetCavityPartIds(out cavities, 1); // ,1 - Ищем Заглушки назначенные пину изделия
+                    int nTerminalCavityes = pinIzdelie.GetCavityPartIds(out cavities, 1); // ,1 - Ищем Наконечники назначенные пину изделия
                     
                     for (int k = 1; k <= nTerminalCavityes; k++)
                     {
@@ -794,12 +794,12 @@ namespace E3_WGM
                             if (pairesNumberTerminalCavityToPinIDs.TryGetValue(cavity.GetValue(), out var terminalIds))
                             {
                                 if( !terminalIds.Contains( cavId))
-                                    terminalIds.Add(cavId);
+                                    terminalIds.Add(cavId); 
                             }
                             else
                             {
                                 terminalIds = new List<int> { cavId };
-                                pairesNumberTerminalCavityToPinIDs.Add(cavity.GetValue(), terminalIds);
+                                pairesNumberTerminalCavityToPinIDs.Add(cavity.GetValue(), terminalIds); // от terminalIds легко потом перейдем к пинам изделий
                             }
                         }
                     }
@@ -825,7 +825,7 @@ namespace E3_WGM
                             else
                             {
                                 sealIds = new List<int> { cavId };
-                                pairesNumberSealCavityToPinIDs.Add(cavity.GetValue(), sealIds);
+                                pairesNumberSealCavityToPinIDs.Add(cavity.GetValue(), sealIds); // от sealIds легко потом перейдем к пинам изделий
                             }                            
                         }
                     }
@@ -1136,7 +1136,11 @@ namespace E3_WGM
                         }
                         
                         usage.amount = usage.amount + countCore; //usage.amount++;
-                        usage.addParentID( izdelieID);
+                        
+                        // Доп требование Пеленга - Номера позиций Наконечников не выводить в СБ чертеже на выноске от "родительского" изделия. Для вывода таких номеров они будут
+                        // вставлять в СБ чертеж фейковое изделие с RS "Отсутствует" + доп.частью с номером Наконечника и его количеством 0.
+                        if( cavity.GetCavityPartType() == 2) // 2 - это Уплотнители, их номера позиций выводим на общей выноске от "родительского" изделия
+                            usage.addParentID(izdelieID);
 
                     }
                     catch (Exception e)
