@@ -21,6 +21,7 @@ namespace E3_WGM
             get { return _ids; }
             set { }
         }
+
         [DataMember]
         private List<int> _parentIds = new List<int>();
         public List<int> parentIDs
@@ -28,6 +29,14 @@ namespace E3_WGM
             get { return _parentIds; }
             set { }
         }
+
+        private List<int> _netSegmentIds = new List<int>();
+        public List<int> netSegmentIds
+        {
+            get { return _netSegmentIds; }
+            set { }
+        }
+
         [DataMember]
         private string _oidMaster = "";
         public string oidMaster
@@ -277,6 +286,14 @@ namespace E3_WGM
             if (!parentIDs.Contains(id))
             {
                 parentIDs.Add(id);
+            }
+        }
+
+        internal void addNetSegmentID(int id)
+        {
+            if (!netSegmentIds.Contains(id))
+            {
+                netSegmentIds.Add(id);
             }
         }
 

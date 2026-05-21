@@ -41,11 +41,13 @@ namespace E3_WGM
 
         public Dictionary<string, string> typeDocuments = null; // устанавливается из E3WGMForms.cs
 
-        public List<int> pinIDsTerminal = new List<int>(); // перечень ID пинов изделий у которых есть cavity объекты типа Заглушка
-        public Dictionary<string, List<int>> pairesNumberTerminalCavityToPinIDs = new Dictionary<string, List<int>>(); //пары: обозначение Заглушки - ID пинов где назначена Заглушка
+        public List<int> pinIDsTerminal = new List<int>(); // перечень ID пинов изделий у которых есть cavity объекты типа Наконечник
+        public Dictionary<string, List<int>> pairesNumberTerminalCavityToPinIDs = new Dictionary<string, List<int>>(); //пары: обозначение Наконечника - ID пинов где назначен этот наконечник
 
         public List<int> pinIDsSeal = new List<int>(); // перечень ID пинов изделий у которых есть cavity объекты типа Уплотнитель
         public Dictionary<string, List<int>> pairesNumberSealCavityToPinIDs = new Dictionary<string, List<int>>(); //пары: обозначение Уплотнителя - ID пинов где назначен Уплотнитель
+
+        public Dictionary<int, List<int>> dictionaryIdDevsOnSegment = new Dictionary<int, List<int>>(); // пары: ID сегмента - ID изделий лежащих/проходящих на/через сегмент
 
         public Utils()
         {
@@ -288,7 +290,7 @@ namespace E3_WGM
             // 2. Кабели ( 2 и более одиночных провода (жилы) в общей изоляции) не располагаются на СБ чертеже в виде собственного символа, поэтому в 1. их не нашло.
             // В этом блоке кода сначала будут найдены только жилы. Для каждой жилы будем определять это одиночный провод, или кабель и дальше их уже обрабатывть.
 
-            var dictionarySymbolsOnSegments = new Dictionary<int, e3Component>();
+            var dictionarySymbolsOnSegments = new Dictionary<int, e3Component>(); // общий мап для всех сегментов
             dynamic sAllSegmentIds = null;
             int segmentCount = sheet.GetNetSegmentIds(ref sAllSegmentIds);
             double tolerance;
@@ -299,45 +301,52 @@ namespace E3_WGM
                 {
                     netSegmentId = sAllSegmentIds[i];
                     netSegment.SetId(netSegmentId);
-                    
+
                     tolerance = double.TryParse(netSegment.GetAttributeValue("Tolerance"),
                                    System.Globalization.NumberStyles.Any,
                                    System.Globalization.CultureInfo.InvariantCulture,
                                    out double parsed) ? parsed / 1000 : 0.0;
 
+
+                List<int> listWireAndDevIds = new List<int>();
+                dictionaryIdDevsOnSegment.Add(netSegmentId, listWireAndDevIds);
+
                     // 2.1 Обрабатываем жилы проходящие через сегмент. Учитываем, что одна и таже жила может проходить через несколько сегментов
                     dynamic sAllCoreIds = null;
-                    int coreCount = netSegment.GetCoreIds(ref sAllCoreIds);
-                    
-                app.PutInfo(0, $" Net Segment {netSegment.GetName()}. Core {coreCount}", netSegment.GetId());
+                    int coreCount = netSegment.GetCoreIds(ref sAllCoreIds);                                    
 
                     // 2.1.2 Определяем к чему относится жила: к одиночному проводу, или к кабелю
                     for (int j = 1; j <= coreCount; j++)
                     {
                         pinId = sAllCoreIds[j];
-                        pin.SetId(pinId);
-                        //app.PutInfo(0, $"     Имя провода {pin.GetName()}", pin.GetId());
+                        pin.SetId(pinId); // pin это провод (жила)                
+
                         devId = dev.SetId( pinId); // где dev это Кабель к которому принадлежит жила.
 
                         if(dev.IsCable() == 1 & dev.IsOverbraid() == 0) // отбросили искуственный Кабель "Провода", где dev.IsOverbraid() тоже 1
                         {
-                            ProcessCable(dev, pin, tolerance, netSegment.GetId()); // обрабатываем кабель
+                            ProcessCable(dev, pin, tolerance, netSegmentId); // обрабатываем кабель
+                 listWireAndDevIds.Add(devId);
                         }
                         else {
-                            ProcessCore(pin, tolerance, 0); // обрабатываем одиночный провод. 0 - не знаем от какого изделия идет этот провод
+                            ProcessCore(pin, tolerance, netSegmentId); // обрабатываем одиночный провод.
+                 listWireAndDevIds.Add(pinId);
                         }
 
                     }
 
-                    // 2.2 Обрабатываем изделия лежащие на сегменте для определения их производственной длинны
-                    // использовать просто int symCount = netSegment.GetSymbolIds(ref sSymIds); к сожалению недостаточно. Код Данилы
+                    // 2.2 Обрабатываем изделия лежащие на сегменте:
+                    // Цель 1: для определения их производственной длинны.
+                    // Цель 2: запоминаем изделия лежащие на сегменте, чтобы потом сфомировать на СБ чертеже выноску от сегмента с номерами позиций этих изделий.
+                    // использовать просто int symCount = netSegment.GetSymbolIds(ref sSymIds); к сожалению недостаточно. Использовал код от Данилы
                     E3Part part = null;
                     E3PartUsage usage = null;
                     double segmentManufLength = netSegment.GetManufacturingLength();
                     var symbolsOnLines = new List<int>();
 
+
                     dynamic connectLineIds = null;
-                    int connectLineCount = netSegment.GetConnectLineIds(ref connectLineIds);
+                    int connectLineCount = netSegment.GetConnectLineIds(ref connectLineIds); // больше 1 линии в тестовом проекте не встречалось
                     for (int l = 1; l <= connectLineCount; l++)
                     {
                         e3ConnectLine.SetId(connectLineIds[l]);
@@ -348,7 +357,20 @@ namespace E3_WGM
                         {
                             int protectionSymbolId = protectionSymbolIds[s];
 
-                            if (symbolsOnLines.Contains(protectionSymbolId))
+                            if (symbolsOnLines.Contains(protectionSymbolId)) // маловероятное событие
+                                continue;
+
+                            devId = dev.SetId(protectionSymbolId);
+                            if (dev.IsFormboard() == 1)
+                            {
+                                dev.SetId(dev.GetOriginalId());  // переходим к оригиналу, у него уже будут найдены атрибуты.
+                            }
+                            else if (dev.IsView() == 1)
+                            {
+                                dev.SetId(dev.GetOriginalId());
+                            }
+
+                            if (devId == 0)
                                 continue;
 
                             symbolsOnLines.Add(protectionSymbolId);
@@ -357,28 +379,24 @@ namespace E3_WGM
                             {
                                 dictionarySymbolsOnSegments.TryGetValue(protectionSymbolId, out comp);
                                 part = (E3Part)umens_e3project.Parts.Find(x => (x is E3Part) && (x as E3Part).ID == comp.GetId());
-                                assemblyForPartsFromShemas.AddUsageLenght(dev, part, segmentManufLength);
+                                assemblyForPartsFromShemas.AddUsageLenght(dev, part, segmentManufLength); // TODO тут вроде потенциальная ошибка, параметр dev в вызываемом методе не используется !
                             }                                
                             else
                             {
-                                devId = dev.SetId(protectionSymbolId);
-                                if (dev.IsView() == 1) //TODO бывает ли тут View? Оставил код, пусть будет
-                                {
-                                    devId = dev.SetId(dev.GetOriginalId());
-                                }
-
-                                if (devId == 0)
-                                    continue;
-
                                 comp.SetId(devId);
                                 part = (E3Part)umens_e3project.Parts.Find(x => (x is E3Part) && (x as E3Part).ID == comp.GetId());
                                 assemblyForPartsFromShemas.AddUsageLenght(dev, part, segmentManufLength);
                                 
-                                dictionarySymbolsOnSegments.Add(protectionSymbolId, comp);
+                                dictionarySymbolsOnSegments.Add(protectionSymbolId, comp);                                                                
                             }
+
+                      listWireAndDevIds.Add(dev.GetId());
 
                             usage = assemblyForPartsFromShemas.Usages.Find(x => x.number == part.number);
                             usage.Tolerance += tolerance;
+
+                            usage.addID(devId);
+                            usage.addNetSegmentID(netSegmentId);
                         }
                     }
                 }
@@ -786,7 +804,7 @@ namespace E3_WGM
                         if (cavId != 0)
                         {
                             //Console.WriteLine("TERMINAL cavity" + "\t " + cavity.GetValue());
-                            app.PutInfo(0, $" TERMINAL cavity {cavity.GetValue()}, пин {pinIzdelie.GetName()}", pinIdIzdelie);
+                            //app.PutInfo(0, $" TERMINAL cavity {cavity.GetValue()}, пин {pinIzdelie.GetName()}", pinIdIzdelie);
 
                             if (String.IsNullOrEmpty(cavity.GetValue()))
                                 continue;
@@ -812,7 +830,7 @@ namespace E3_WGM
                         int cavId = cavity.SetId(cavities[k]);
                         if (cavId != 0)
                         {                            
-                            app.PutInfo(0, $" SEAL cavity {cavity.GetValue()}, пин {pinIzdelie.GetName()}", pinIdIzdelie);
+                            //app.PutInfo(0, $" SEAL cavity {cavity.GetValue()}, пин {pinIzdelie.GetName()}", pinIdIzdelie);
 
                             if (String.IsNullOrEmpty(cavity.GetValue()))
                                 continue;
@@ -842,7 +860,7 @@ namespace E3_WGM
                     {
                         coreId = sAllCoreIds[k];
                         core.SetId(coreId);
-                     app.PutInfo(0, $" pinIzdelie {pinIzdelie.GetName()}    Имя провода {core.GetName()}", core.GetId());
+                        //app.PutInfo(0, $" pinIzdelie {pinIzdelie.GetName()}    Имя провода {core.GetName()}", core.GetId());
                         devId = dev.SetId(coreId); // где dev это Кабель к которому принадлежит жила.
 
 
@@ -852,7 +870,7 @@ namespace E3_WGM
                         }
                         else if (dev.IsCable() == 1 & dev.IsOverbraid() == 1)
                         {
-                            ProcessCore(core, 0, devIzdelie.GetId()); // обрабатываем одиночный провод
+                            ProcessCore(core, 0, -1); // обрабатываем одиночный провод
                         }
                     }
                 }
@@ -898,9 +916,9 @@ namespace E3_WGM
         /// <summary>
         /// Обрабатывает одиночный провод:
         /// <para>Если Раздел спецификации "Отсутствует", то пропускаем обработку этого провода</para>
-        /// <para>Иначе. Добавляет провод к нашей ЭСИ и определяет его длину. Находит Cavity объекты связанные с проводом и добавляет их в нашу ЭСИ</para>
+        /// <para>Иначе. Добавляет провод к нашей ЭСИ и определяет его длину.</para>
         /// </summary>
-        private void ProcessCore(e3Pin pin, double tolerance, int izdelieID)
+        private void ProcessCore(e3Pin pin, double tolerance, int netSegmentId)
         {
             if (pin.GetAttributeValue(AttrsName.getAttrsName("atrBomRs")).Equals(BomRSValues.getBomRSValue((int)BomRSEnum.NO)))
             {
@@ -915,12 +933,10 @@ namespace E3_WGM
                 E3Cable cable = GetOrCreateCable(pin, wiregrouptype, wiretype); // при создании cable закомментировал занесение в него devId
                 E3PartUsage usage = assemblyForPartsFromShemas.AddOrGetUsage(pin, cable);
                 usage.Tolerance += tolerance;
+                usage.addNetSegmentID(netSegmentId);
 
                 if (!cable.IDs.Contains(pin.GetId())) // проверяем обработали ли мы уже эту жилу
                 {
-                    // 1. Обрабатываем у жилы возможные объекты Cavity
-                    //AddCavityOfCable( pin, izdelieID);
-
                     cable.IDs.Add(pin.GetId());
 
                     // 2.                     
@@ -948,7 +964,7 @@ namespace E3_WGM
                     }
 
                     usage.AddAmount(amount);
-                    usage.addID(pin.GetId());
+                    usage.addID(pin.GetId());                    
                 }                
             }
             catch (Exception ex)
@@ -966,9 +982,8 @@ namespace E3_WGM
 
                 // 1. Обрабатываем у жилы возможные объекты Cavity
                 if (!cable.IDs.Contains( pin.GetId())) // проверяем обработали ли мы уже эту жилу у нашего кабеля
-                {                    
-                    //AddCavityOfCable( pin, devCable.GetId());
-                    cable.IDs.Add( pin.GetId()); // !!! в IDs кабеля заношу как Id самого кабеля, так и ID его жил, так и ID сегментов сети !!!
+                {                                        
+                    cable.IDs.Add( pin.GetId()); // !!! в IDs кабеля заношу как Id самого кабеля, так и ID его жил !!!
                 }
 
                 // 2. Проверяем обработали ли мы уже этот кабель. Длина всего кабеля определяется сразу по длинне 1 жилы
@@ -997,10 +1012,10 @@ namespace E3_WGM
                 }
 
                 // 3. Допуск на длину всего кабеля определяется суммированием допусков назначенных на каждый сегмент сети где проходит кабель.
-                if (!cable.IDs.Contains( netSegmentId))
+                if (!usage.netSegmentIds.Contains( netSegmentId)) // !cable.IDs.Contains( netSegmentId)
                 {
                     usage.Tolerance += tolerance;
-                    cable.IDs.Add( netSegmentId);
+                    usage.addNetSegmentID(netSegmentId); // cable.IDs.Add( netSegmentId);
                 }
             }
             catch (Exception ex)

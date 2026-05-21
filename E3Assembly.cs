@@ -93,6 +93,7 @@ namespace E3_WGM
             update(asmWch);
             updateUsages(asmWch, errorMessages);
             updateSumPosInUsages(job);
+            updateSumPosInUsagesForNetSegments(job);
         }
 
         private void update(E3Assembly asmWch)
@@ -442,16 +443,22 @@ namespace E3_WGM
             // 1. вычисляем данные для суммарной позиции
             foreach (E3PartUsage currentE3PartUsage in _usages)
             {
-                if (currentE3PartUsage.parentIDs.Count > 0)
-                    continue; // имеем дело с E3PartUsage Дополнительных частей (доп.части, замены, cavity), а нам нужны Изделия непосредственно расположенные на СБ чертеже
+                //if (currentE3PartUsage.parentIDs.Count > 0 || currentE3PartUsage.netSegmentIds.Count > 0)
+                //    continue; // имеем дело с E3PartUsage Дополнительных частей (доп.части, замены, cavity) или изделиями лежащими на сегменте, а нам нужны Изделия непосредственно расположенные на СБ чертеже от которых будет строиться выноска с номером позиции/й
 
                 foreach (int itemId in currentE3PartUsage.IDs) // на СБ чертеже Изделие может встречаться несколько раз (разные Поз.обозначения) и могут быть с RS "Отсутствует"
                 {
+                    // сначала очищаем у всех изделий атрибут "суммарная позиция"
+                    dev.SetId(itemId);
+                    dev.SetAttributeValue(AttrsName.getAttrsName("lineNumber"), "");
+
+                    if (currentE3PartUsage.parentIDs.Count > 0 || currentE3PartUsage.netSegmentIds.Count > 0)
+                        continue; // имеем дело с E3PartUsage Дополнительных частей (доп.части, замены, cavity) или изделиями лежащими на сегменте, а нам нужны Изделия непосредственно расположенные на СБ чертеже от которых будет строиться выноска с номером позиции/й
+
+
                     tempLineNumber = "";
                     List<int> lineNumbers = new List<int>();
-                    
-                    
-                    dev.SetId(itemId);
+                                                            
                     currentDevRS = dev.GetAttributeValue(AttrsName.getAttrsName("atrBomRs"));
 
                     // Придумка Пеленга о 150% BOM. Проверяем их признак, т.е. в ЭСИ будет несколько записей с 0 количеством и ЕИ "По необходимости"
@@ -514,6 +521,98 @@ namespace E3_WGM
                     }
                 }
             }
+
+        }
+
+        /// <summary>
+        /// Заполняем атрибут "Суммарная позиция" у сегмента.
+        /// В интерфейсе Е3 чтобы его посмотреть нужно выделить сермент на СБ чертеже нажать ПКМ и выбрать "Параметры соединения"
+        /// </summary>
+        /// <param name="job"></param>
+        private void updateSumPosInUsagesForNetSegments(e3Job job)
+        {
+            e3Device dev = job.CreateDeviceObject();
+            e3Pin pin = job.CreatePinObject();
+            e3NetSegment netSegment = job.CreateNetSegmentObject();
+            int devLineNumber = 0;
+            String tempLineNumber;
+            List<int> listWireAndDevIds = null;
+
+            List<int> lineNumbers = null;
+            var dictionaryLineNumbersOnSegments = new Dictionary<int, List<int>>(); // мап Id сегментов - перечень Номеров позиций для каждого сегмента
+
+
+            // 1. вычисляем данные для суммарной позиции сегмента
+            Dictionary<int, List<int>> dictionaryIdDevsOnSegment = E3WGMForm.UtilsInstance.dictionaryIdDevsOnSegment;
+
+            foreach (E3PartUsage currentE3PartUsage in _usages)
+            {
+                if ( currentE3PartUsage.netSegmentIds.Count == 0) // признак, что номер позиции из currentE3PartUsage должен выводиться на выноске от сегмента
+                    continue;
+
+                foreach (int segmentId in currentE3PartUsage.netSegmentIds) //
+                {
+                    if (segmentId == -1)
+                        continue;
+
+                    tempLineNumber = "";
+
+                    // сначала очищаем у всех сегментов атрибут "суммарная позиция"
+                    netSegment.SetId(segmentId);
+                    netSegment.SetAttributeValue(AttrsName.getAttrsName("lineNumber"), "");
+
+
+                    //если сегмент уже встречался в предыдущих currentE3PartUsage, то продолжаем дописывать ему номера позиций в lineNumbers
+                    dictionaryLineNumbersOnSegments.TryGetValue(segmentId, out lineNumbers);
+                    if(lineNumbers == null)
+                    {
+                        lineNumbers = new List<int>();
+                        dictionaryLineNumbersOnSegments.Add(segmentId, lineNumbers);
+                    }
+                        
+
+
+                    dictionaryIdDevsOnSegment.TryGetValue(segmentId, out listWireAndDevIds); // получили ранее наполненный перечень id объектов лежащих на сегменте
+
+                    foreach (int itemId in currentE3PartUsage.IDs)
+                    {
+                        E3WGMForm.UtilsInstance.app.PutInfo(0, $"itemId {itemId}", itemId);
+                        if (!listWireAndDevIds.Contains(itemId)) // проверяем относится ли текущий itemId к текущему сегменту
+                            continue;
+
+                        if (currentE3PartUsage.isForBOM == true)
+                        {
+                            devLineNumber = currentE3PartUsage.lineNumber;
+                            if (!lineNumbers.Contains(devLineNumber))
+                                lineNumbers.Add(devLineNumber); // Запомнили Позицию самого Изделия
+                        }
+
+                        foreach (E3PartUsage usageWithParent in _usages) //Протестировать!!!  Ищем E3PartUsage Дополнительных частей у которых Parent-ом является изделие представленное itemId
+                        {
+                            if (usageWithParent.parentIDs.Contains(itemId)) // TODO проверить, может в parentIDs сидит другой itemId одного и того же изделия ?
+                            {
+                                if (!lineNumbers.Contains(usageWithParent.lineNumber))
+                                    lineNumbers.Add(usageWithParent.lineNumber); // Добавили Позицию Дополнительной части 
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. Заносим данные в атрибут сегмента
+            
+            foreach (KeyValuePair<int, List<int>> kvp in dictionaryLineNumbersOnSegments)
+            {
+                int segmentId = kvp.Key;
+                lineNumbers = kvp.Value;
+
+                netSegment.SetId(segmentId);
+                //E3WGMForm.UtilsInstance.app.PutInfo(0, "segment", segmentId);
+
+                tempLineNumber = string.Join(" \r\n", lineNumbers.OrderBy(x => x)); // упорядочивает номера позиций по возрастанию и по правилу Е3, каждый номер должен располагаться строчкой ниже
+                netSegment.SetAttributeValue(AttrsName.getAttrsName("lineNumber"), tempLineNumber);
+            }
+
 
         }
     }
