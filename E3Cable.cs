@@ -52,7 +52,11 @@ namespace E3_WGM
             set { _usages = value; }
         }
 
-        public E3Cable(e3Pin wire)
+        /// <summary>
+        /// Создание провода
+        /// </summary>
+        /// <param name="wire"></param>
+        public E3Cable(e3Pin wire) 
         {
             //IDs.Add(wire.GetId());
             dynamic wiregrouptype = null, wiretype = null;
@@ -65,12 +69,16 @@ namespace E3_WGM
             ATR_BOM_RS = wire.GetAttributeValue(AttrsName.getAttrsName("atrBomRs"));            
         }
 
+        /// <summary>
+        /// Создание кабеля
+        /// </summary>
+        /// <param name="dev"></param>
         public E3Cable(e3Device dev)
         {
             //IDs.Add(dev.GetId());
-            // ? ATR_E3_ENTRY = wiregrouptype;
-            // ? ATR_E3_WIRETYPE = wiretype;
 
+            // ATR_E3_ENTRY - TODO Что сюда выводить из атрибутов компонента или изделия ?
+            // ATR_E3_WIRETYPE - TODO Что сюда выводить из атрибутов компонента или изделия ?
             oidMaster = dev.GetAttributeValue("WCH_id");
             number = dev.GetAttributeValue("WCH_number");
             name = dev.GetAttributeValue("WCH_name");

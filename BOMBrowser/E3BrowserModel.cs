@@ -48,7 +48,7 @@ namespace E3_WGM.BOMBrowser
             {
                 BaseItem parent = treePath.LastNode as BaseItem;
                 if (parent == null) return Enumerable.Empty<BaseItem>();
-                string cacheKey = parent.ATR_E3_ENTRY;
+                string cacheKey = parent.NUMBER; // parent.ATR_E3_ENTRY;
 
                 if (_cache.ContainsKey(cacheKey))
                     return _cache[cacheKey];
@@ -199,6 +199,7 @@ namespace E3_WGM.BOMBrowser
                 partItem.Replacement = usage.Replacements.Count > 0 ? "R" : "";
                 partItem.Replacements = usage.Replacements;
                 partItem.ATR_BOM_RS = usage.RS;
+                
             }
             else if (item is AsmItem asmItem)
             {

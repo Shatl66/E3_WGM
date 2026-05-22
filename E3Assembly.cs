@@ -366,31 +366,32 @@ namespace E3_WGM
                 if (wchUsagesDict.TryGetValue(currentKey, out E3PartUsage matchingUsageFromWch))
                 {
                     String obj = !String.IsNullOrEmpty(matchingUsageFromWch.number) ? matchingUsageFromWch.number : matchingUsageFromWch.ATR_E3_ENTRY;
+                    Part part = E3WGMForm.UtilsInstance.umens_e3project.Parts.Find(x => x.number == matchingUsageFromWch.number);
 
                     if (String.IsNullOrEmpty(matchingUsageFromWch.oidMaster))
                     {                        
-                        if (!errorMessages.Contains($"Изделие {obj} не найдено в Windchill"))
-                            errorMessages.Add($"Изделие {obj} не найдено в Windchill");
+                        if (!errorMessages.Contains($"Изделие {obj} {part.name} не найдено в Windchill"))
+                            errorMessages.Add($"Изделие {obj} {part.name} не найдено в Windchill");
 
                         continue;
                     }
 
                     String wchState = matchingUsageFromWch.State;
                     if (wchState.Equals("Запрещено к применению") || wchState.Equals("Аннулировано") ||
-                        wchState.Equals("Снято с производства") || wchState.Equals("Ограничительный перечень"))
+                        wchState.Equals("Снято с производства") || wchState.Equals("Не в ограничительном перечне"))
                     {
-                        if (!errorMessages.Contains($"Изделие {obj} {wchState} в Windchill"))
-                            errorMessages.Add($"Изделие {obj} {wchState} в Windchill");
+                        if (!errorMessages.Contains($"Изделие {obj} {part.name} {wchState} в Windchill"))
+                            errorMessages.Add($"Изделие {obj} {part.name} {wchState} в Windchill");
 
                         //continue; поз. номер выводим !
                     }
 
 
-                    if (matchingUsageFromWch.RS.Equals("Прочие изделия") || matchingUsageFromWch.RS.Equals("Стандартные изделия") || matchingUsageFromWch.RS.Equals("Материалы"))
+                    if (matchingUsageFromWch.RS.Equals("Прочие изделия") || matchingUsageFromWch.RS.Equals("Стандартные изделия"))
                     {
                         String wchRestrict = matchingUsageFromWch.Restrict;
                         String prjRestrict = E3WGMForm.UtilsInstance.restrictProject;
-                        Part part = E3WGMForm.UtilsInstance.umens_e3project.Parts.Find(x => x.number == matchingUsageFromWch.number);
+                        //Part part = E3WGMForm.UtilsInstance.umens_e3project.Parts.Find(x => x.number == matchingUsageFromWch.number);
 
                         if (!prjRestrict.Equals("Без ограничений"))
                         {
@@ -576,7 +577,7 @@ namespace E3_WGM
 
                     foreach (int itemId in currentE3PartUsage.IDs)
                     {
-                        E3WGMForm.UtilsInstance.app.PutInfo(0, $"itemId {itemId}", itemId);
+                        //E3WGMForm.UtilsInstance.app.PutInfo(0, $"itemId {itemId}", itemId);
                         if (!listWireAndDevIds.Contains(itemId)) // проверяем относится ли текущий itemId к текущему сегменту
                             continue;
 

@@ -145,6 +145,12 @@ namespace E3_WGM
                 string allErrors = string.Join("\n\n", errorMessages);
                 MessageBox.Show(allErrors, "Ошибки при чтении устройств и синхронизации с Windchill",
                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                // дублируем вывод ошибок в интерфейс Е3. Хотят иметь возможность копировать текст из окна уведомления, из MessageBox это невозможно
+                foreach (String strMsg in errorMessages)
+                {
+                    E3WGMForm.UtilsInstance.app.PutError(0, $"{strMsg}");
+                }
             }           
 
             return _Utils.getFilled_Umens_e3project();

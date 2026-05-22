@@ -43,10 +43,10 @@ namespace E3_WGM.BOMBrowser
 
                 if (_part is E3Cable)
                 {
-                    return ((E3Cable)_part).ATR_E3_ENTRY + " - " + ((E3Cable)_part).ATR_E3_WIRETYPE;
+                    return ((E3Cable)_part).ATR_E3_ENTRY + " - " + ((E3Cable)_part).ATR_E3_WIRETYPE; //TODO у кабелей эти атрибуты пустые, выводится просто "-" ! У проводов все есть.
                 }
 
-                return _part.number;
+                return "--"; // _part.number; // запросили чтобы у объектов не из БД Е3 ( это доп.части, cavity) выводился прочерк
             }
             set { }
         }

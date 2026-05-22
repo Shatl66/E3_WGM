@@ -35,6 +35,7 @@
             this.treeColumnName = new Aga.Controls.Tree.TreeColumn();
             this.treeColumnBomRS = new Aga.Controls.Tree.TreeColumn();
             this.treeColumnAmount = new Aga.Controls.Tree.TreeColumn();
+            this.treeColumnTolerance = new Aga.Controls.Tree.TreeColumn();
             this.treeColumnUnit = new Aga.Controls.Tree.TreeColumn();
             this.treeColumnRefDes = new Aga.Controls.Tree.TreeColumn();
             this.treeColumnEntry = new Aga.Controls.Tree.TreeColumn();
@@ -49,10 +50,9 @@
             this._lineNumber = new Aga.Controls.Tree.NodeControls.NodeTextBox();
             this._refDes = new Aga.Controls.Tree.NodeControls.NodeTextBox();
             this._replacement = new Aga.Controls.Tree.NodeControls.NodeTextBox();
+            this._tolerance = new Aga.Controls.Tree.NodeControls.NodeTextBox();
             this.panel1 = new System.Windows.Forms.Panel();
             this.buttonUploadStructure = new System.Windows.Forms.Button();
-            this.treeColumnTolerance = new Aga.Controls.Tree.TreeColumn();
-            this._tolerance = new Aga.Controls.Tree.NodeControls.NodeTextBox();
             this.panel1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -146,6 +146,13 @@
             this.treeColumnAmount.TooltipText = null;
             this.treeColumnAmount.Width = 100;
             // 
+            // treeColumnTolerance
+            // 
+            this.treeColumnTolerance.Header = "Допуск";
+            this.treeColumnTolerance.SortOrder = System.Windows.Forms.SortOrder.None;
+            this.treeColumnTolerance.TooltipText = null;
+            this.treeColumnTolerance.Width = 100;
+            // 
             // treeColumnUnit
             // 
             this.treeColumnUnit.Header = "ЕИ";
@@ -165,7 +172,7 @@
             this.treeColumnEntry.Header = "Имя в БД Е3";
             this.treeColumnEntry.SortOrder = System.Windows.Forms.SortOrder.None;
             this.treeColumnEntry.TooltipText = null;
-            this.treeColumnEntry.Width = 150;
+            this.treeColumnEntry.Width = 250;
             // 
             // nodeCheckBox1
             // 
@@ -245,6 +252,13 @@
             this._replacement.LeftMargin = 3;
             this._replacement.ParentColumn = this.treeColumnReplacement;
             // 
+            // _tolerance
+            // 
+            this._tolerance.DataPropertyName = "Tolerance";
+            this._tolerance.IncrementalSearchEnabled = true;
+            this._tolerance.LeftMargin = 3;
+            this._tolerance.ParentColumn = this.treeColumnTolerance;
+            // 
             // panel1
             // 
             this.panel1.Controls.Add(this.buttonUploadStructure);
@@ -265,20 +279,6 @@
             this.buttonUploadStructure.Text = "Выгрузить";
             this.buttonUploadStructure.UseVisualStyleBackColor = true;
             this.buttonUploadStructure.Click += new System.EventHandler(this.buttonUploadStructure_Click);
-            // 
-            // treeColumnTolerance
-            // 
-            this.treeColumnTolerance.Header = "Допуск";
-            this.treeColumnTolerance.SortOrder = System.Windows.Forms.SortOrder.None;
-            this.treeColumnTolerance.TooltipText = null;
-            this.treeColumnTolerance.Width = 100;
-            // 
-            // _tolerance
-            // 
-            this._tolerance.DataPropertyName = "Tolerance";
-            this._tolerance.IncrementalSearchEnabled = true;
-            this._tolerance.LeftMargin = 3;
-            this._tolerance.ParentColumn = this.treeColumnTolerance;
             // 
             // E3StructureBrowser
             // 

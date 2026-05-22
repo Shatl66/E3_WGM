@@ -172,8 +172,6 @@ namespace E3_WGM
                 bool hasAttribute = structureNode.HasAttribute("Naimen_izdel") == 1 ? true : false;
                 namePart = hasAttribute ? structureNode.GetAttributeValue("Naimen_izdel") : "Наименование пока не известно";
 
-                //app.PutInfo(0, $"Найден узел: {numberPart} {namePart}"); // тоже самое, что и "Найден WTPart: '" + nodeName + "' (ID: " + nodeId + ")"
-
                 if (parentAssembly == null & typeName == "<Project>")
                 {
                     // Настраиваем наш центральный объект umens_e3project на работу с данными именно от всего проекта Е3. т.к. именно сам проект выбран в дереве листов Е3
@@ -308,8 +306,8 @@ namespace E3_WGM
                                    out double parsed) ? parsed / 1000 : 0.0;
 
 
-                List<int> listWireAndDevIds = new List<int>();
-                dictionaryIdDevsOnSegment.Add(netSegmentId, listWireAndDevIds);
+                    List<int> listWireAndDevIds = new List<int>();
+                    dictionaryIdDevsOnSegment.Add(netSegmentId, listWireAndDevIds);
 
                     // 2.1 Обрабатываем жилы проходящие через сегмент. Учитываем, что одна и таже жила может проходить через несколько сегментов
                     dynamic sAllCoreIds = null;
@@ -326,11 +324,11 @@ namespace E3_WGM
                         if(dev.IsCable() == 1 & dev.IsOverbraid() == 0) // отбросили искуственный Кабель "Провода", где dev.IsOverbraid() тоже 1
                         {
                             ProcessCable(dev, pin, tolerance, netSegmentId); // обрабатываем кабель
-                 listWireAndDevIds.Add(devId);
+                            listWireAndDevIds.Add(devId);
                         }
                         else {
                             ProcessCore(pin, tolerance, netSegmentId); // обрабатываем одиночный провод.
-                 listWireAndDevIds.Add(pinId);
+                            listWireAndDevIds.Add(pinId);
                         }
 
                     }
@@ -611,15 +609,13 @@ namespace E3_WGM
             e3CavityPart cavity = job.CreateCavityPartObject();
 
             dynamic cavities = null;
-            // ? pin.GetCavityPartsFromPinByCore();
-            //int nAllCavityes = pin.GetEndCavityPartIds(0, ref cavities, 0); // последний параметр может быть &h01 - Only connector pin terminals 
             int nAllCavityes = pin.GetCavityPartIds( out cavities, 0); // 2 - это all CavityParts of type Wire Seal, т.е. уплотнители 
 
             for (int k = 1; k <= nAllCavityes; k++)
             {
                 int cavId = cavity.SetId(cavities[k]);
-                if( cavId != 0)
-                    app.PutInfo(0, "Cavity", cavId);
+                //if( cavId != 0)
+                    //app.PutInfo(0, "Cavity", cavId);
             }
         }
 
@@ -718,7 +714,7 @@ namespace E3_WGM
         /// </summary>
         private void ProcessDeviceWithoutComponent(e3Device dev)
         {
-            app.PutInfo(0, $"Изделие {dev.GetName()}", dev.GetId());
+            //app.PutInfo(0, $"Изделие {dev.GetName()}", dev.GetId());
 
             if (dev.IsCable() == 1) // По dev.GetId() E3 переходит к папке "Провода" в дереве изделий.
             {
@@ -730,9 +726,7 @@ namespace E3_WGM
                     return;
                 }
 
-                //E3Assembly assembly = GetOrCreateE3Assembly(assignment);
                 ProcessPinsForCableDevice(dev, assemblyForPartsFromShemas);
-
             }
             else if (dev.IsCable() == 0)
             {
@@ -746,7 +740,7 @@ namespace E3_WGM
                 }
                 else if (dev.IsTerminal() == 1)
                 {
-                    app.PutInfo(0, $"Доработать Наконечник !", dev.GetId());
+                    //app.PutInfo(0, $"Доработать Наконечник !", dev.GetId());
                     errorMessages.Add("Доработать код !");
                 }
 
@@ -1441,7 +1435,7 @@ namespace E3_WGM
             }
             else
             {   // дошли до папки Тип документа (.DOCUMENT_TYPE) в нее уже вложены схемы              
-                string docType = "", docTypeSuff = "", docNumber = "", docName = "", docFormat = "";
+                string docType = "", docTypeSuff = "", calculatedTypeSuff = "", docNumber = "", docName = "", docFormat = "";
 
                 numberPart = parentAssembly.number;
 
@@ -1457,10 +1451,23 @@ namespace E3_WGM
                     {
                         docType = sheet.GetAttributeValue(AttrsName.getAttrsName("docType"));
                         docType = docType.Replace("\r\n", "");
-                        docTypeSuff = calcDocTypeSuffix(docType, sheet); //sheet.GetAttributeValue(AttrsName.getAttrsName("docTypeSuff")); 
-                                                                                                      
-                        docNumber = numberPart + docTypeSuff; // именно без пробела.                        
 
+
+                        // Проверка КК на то, что в параметрах листа Тип документа соответствует Шифру документа
+                        calculatedTypeSuff = calcDocTypeSuffix(docType, sheet);
+                        docTypeSuff = sheet.GetAttributeValue(AttrsName.getAttrsName("docTypeSuff")); 
+                        if( String.IsNullOrEmpty(calculatedTypeSuff) || !calculatedTypeSuff.Equals(docTypeSuff))
+                        {
+                            if (!errorMessages.Contains($"{numberPart} {docType} 'Шифр документа' не заполнен или не соответствует 'Виду документа'"))
+                            {
+                                errorMessages.Add($"{numberPart} {docType} 'Шифр документа' не заполнен или не соответствует 'Виду документа'");
+                            }
+
+                        }
+
+
+
+                        docNumber = numberPart + docTypeSuff; // именно без пробела.                        
                         docFormat = sheet.GetAttributeValue(AttrsName.getAttrsName("docFormat"));
                         docFormat = docFormat.Replace("А", "A"); // на всякий случай русскую "А" меняем на английскую
                         docFormat = docFormat.Replace("х", "x"); // на всякий случай
@@ -1496,11 +1503,6 @@ namespace E3_WGM
         {
             String docSuff = "";
             typeDocuments.TryGetValue( docType, out docSuff);
-
-            if (docSuff == null) // пусть будет пока и эта логика.
-            {
-                docSuff = sheet.GetAttributeValue(AttrsName.getAttrsName("docTypeSuff"));
-            }
 
             return docSuff;
         }
