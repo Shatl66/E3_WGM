@@ -378,7 +378,7 @@ namespace E3_WGM
 
                     String wchState = matchingUsageFromWch.State;
                     if (wchState.Equals("Запрещено к применению") || wchState.Equals("Аннулировано") ||
-                        wchState.Equals("Снято с производства") || wchState.Equals("Не в ограничительном перечне"))
+                        wchState.Equals("Снято с производства")) // || wchState.Equals("Не в ограничительном перечне")
                     {
                         if (!errorMessages.Contains($"Изделие {obj} {part.name} {wchState} в Windchill"))
                             errorMessages.Add($"Изделие {obj} {part.name} {wchState} в Windchill");
@@ -397,8 +397,10 @@ namespace E3_WGM
                         {
                             if ( (prjRestrict.Equals("20") & !wchRestrict.Equals("20")) || (prjRestrict.Equals("30") & !wchRestrict.Equals("30")) )
                             {
-                                if (!errorMessages.Contains($"{matchingUsageFromWch.number} {part.name} не входит в ограничительный перечень проекта {prjRestrict}"))
-                                    errorMessages.Add($"{matchingUsageFromWch.number} {part.name} не входит в ограничительный перечень проекта {prjRestrict}");
+                                String nameR;
+                                E3WGMForm.UtilsInstance.restrictNames.TryGetValue(prjRestrict, out nameR);
+                                if (!errorMessages.Contains($"{matchingUsageFromWch.number} {part.name} не входит в ограничительный перечень {nameR}"))
+                                    errorMessages.Add($"{matchingUsageFromWch.number} {part.name} не входит в ограничительный перечень {nameR}");
                             }
                         }
 

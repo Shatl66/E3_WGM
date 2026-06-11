@@ -96,7 +96,13 @@ namespace E3_WGM
             _Utils.typeDocuments = typeDocuments;
 
 
-
+            Dictionary<string, string> restrictNames = new Dictionary<string, string>();
+            restrictNames.Add("10", "НКУ \"МиАС\"");
+            restrictNames.Add("20", "НКУ \"СКС\"");
+            restrictNames.Add("30", "НКУ \"Космос\"");
+            restrictNames.Add("40", "НКУ \"Композит\"");
+            restrictNames.Add("70", "НКУ \"АС\"");
+            _Utils.restrictNames = restrictNames;
 
             // Подписываем E3WGMForm на событие синхронизации генерируемое кнопкой "Синхронизация"
             e3CommonControl1.SynchronizeClicked += E3CommonControl1_SynchronizeClicked;

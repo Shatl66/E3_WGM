@@ -49,6 +49,7 @@ namespace E3_WGM
 
         public Dictionary<int, List<int>> dictionaryIdDevsOnSegment = new Dictionary<int, List<int>>(); // пары: ID сегмента - ID изделий лежащих/проходящих на/через сегмент
 
+        public Dictionary<string, string> restrictNames = null; // устанавливается из E3WGMForms.cs
         public Utils()
         {
             //ConnectToE3Series();
@@ -933,33 +934,25 @@ namespace E3_WGM
                 {
                     cable.IDs.Add(pin.GetId());
 
-                    // 2.                     
-                    double amount = pin.GetLength();
-                    if (amount == 0)
-                    {
-                        string length = pin.GetAttributeValue(AttrsName.getAttrsName("cuttingLength")); //  в настройках Пеленга ->  .CORE_MANUFACTURING_LENGHT
-
-                        if (length != null && length != "")
-                        {
-                            if (length.Contains(" ")) // TODO с таким не столкнулся
-                                amount = Double.Parse(length.Split(' ')[0].Replace('.', ','));
-                            else
-                                amount = Double.Parse(length.Replace('.', ','));
-                        }
-                    }
-
-                    amount = amount / 1000;
-
-                    // проверяем входит ли провод в витую пару 
-                    int bundleId = bundle.SetId( pin.GetId());
-                    if( bundleId != 0 && bundle.IsTwisted() == 1)
-                    {
-                        amount = amount * 1.3;
-                    }
+                    double amount = calculateLenghtWire(pin);
 
                     usage.AddAmount(amount);
-                    usage.addID(pin.GetId());                    
-                }                
+                    usage.addID(pin.GetId());
+
+                    // 1. пункт 33 доп. требований
+                    double pinLT = amount + tolerance;
+                    pin.SetAttributeValue("LengthTolerance", pinLT.ToString().Replace(',', '.'));
+                }
+                else
+                {
+                    // 2. пункт 33 доп. требований
+                    if (tolerance > 0)
+                    {
+                        double pinLT = Double.Parse(pin.GetAttributeValue("LengthTolerance").Replace('.', ','));
+                        pinLT = pinLT + tolerance; // суммируем допуски
+                        pin.SetAttributeValue("LengthTolerance", pinLT.ToString().Replace(',', '.'));
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -969,37 +962,43 @@ namespace E3_WGM
 
         private void ProcessCable(e3Device devCable, e3Pin pin, double tolerance, int netSegmentId)
         {
+            double amount = 0;
             try
             {
                 E3Cable cable = GetOrCreateCable( devCable); // при создании cable закомментировал занесение в него devId
-                E3PartUsage usage = assemblyForPartsFromShemas.AddOrGetUsage(pin, cable);                
+                E3PartUsage usage = assemblyForPartsFromShemas.AddOrGetUsage(pin, cable);
 
-                // 1. Обрабатываем у жилы возможные объекты Cavity
-                if (!cable.IDs.Contains( pin.GetId())) // проверяем обработали ли мы уже эту жилу у нашего кабеля
+                // 1. Проверяем обработали ли мы уже эту жилу у нашего кабеля
+                if (!cable.IDs.Contains( pin.GetId())) 
                 {                                        
                     cable.IDs.Add( pin.GetId()); // !!! в IDs кабеля заношу как Id самого кабеля, так и ID его жил !!!
+
+                    amount = calculateLenghtWire( pin);
+
+                    // 1. пункт 33 доп. требований
+                    double pinLT = amount + tolerance;
+                    pin.SetAttributeValue("LengthTolerance", pinLT.ToString().Replace(',', '.'));
+                    double testLT = Double.Parse(pin.GetAttributeValue("LengthTolerance").Replace('.', ','));
+
                 }
+                else
+                {
+                    // 2. пункт 33 доп. требований
+                    if (tolerance > 0)
+                    {
+                        double pinLT = Double.Parse(pin.GetAttributeValue("LengthTolerance").Replace('.', ','));
+                        pinLT = pinLT + tolerance; // суммируем допуски
+                        pin.SetAttributeValue("LengthTolerance", pinLT.ToString().Replace(',', '.'));
+                        double testLT = Double.Parse(pin.GetAttributeValue("LengthTolerance").Replace('.', ','));
+                    }
+                }
+
 
                 // 2. Проверяем обработали ли мы уже этот кабель. Длина всего кабеля определяется сразу по длинне 1 жилы
                 if (!cable.IDs.Contains( devCable.GetId()))
                 {
                     cable.IDs.Add( devCable.GetId());
 
-                    double amount = pin.GetLength(); // длинну кабеля определяем по длинне жилы
-                    if (amount == 0)
-                    {
-                        string length = pin.GetAttributeValue(AttrsName.getAttrsName("cuttingLength")); //  в настройках Пеленга ->  .CORE_MANUFACTURING_LENGHT
-
-                        if (length != null && length != "")
-                        {
-                            if (length.Contains(" ")) // TODO с таким не столкнулся
-                                amount = Double.Parse(length.Split(' ')[0].Replace('.', ','));
-                            else
-                                amount = Double.Parse(length.Replace('.', ','));
-                        }
-                    }
-
-                    amount = amount / 1000;
                     usage.AddAmount(amount);
 
                     usage.addID( devCable.GetId());
@@ -1017,6 +1016,35 @@ namespace E3_WGM
                 errorMessages.Add($"Ошибка при обработке провода: {ex.Message}");
             }
         }
+
+        private double calculateLenghtWire(e3Pin pin)
+        {
+            double amount = pin.GetLength(); 
+            if (amount == 0)
+            {
+                string length = pin.GetAttributeValue(AttrsName.getAttrsName("cuttingLength")); //  в настройках Пеленга ->  .CORE_MANUFACTURING_LENGHT
+
+                if (length != null && length != "")
+                {
+                    if (length.Contains(" ")) // TODO с таким не столкнулся
+                        amount = Double.Parse(length.Split(' ')[0].Replace('.', ','));
+                    else
+                        amount = Double.Parse(length.Replace('.', ','));
+                }
+            }
+
+            amount = amount / 1000;
+
+            // проверяем входит ли провод в витую пару . Тут это надо ?
+            int bundleId = bundle.SetId(pin.GetId());
+            if (bundleId != 0 && bundle.IsTwisted() == 1)
+            {
+                amount = amount * 1.3;
+            }
+
+            return amount;
+        }
+
 
 
 
