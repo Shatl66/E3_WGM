@@ -934,7 +934,7 @@ namespace E3_WGM
                 {
                     cable.IDs.Add(pin.GetId());
 
-                    double amount = calculateLenghtWire(pin);
+                    double amount = calculateLenghtWire(pin, "core");
 
                     usage.AddAmount(amount);
                     usage.addID(pin.GetId());
@@ -973,7 +973,7 @@ namespace E3_WGM
                 {                                        
                     cable.IDs.Add( pin.GetId()); // !!! в IDs кабеля заношу как Id самого кабеля, так и ID его жил !!!
 
-                    amount = calculateLenghtWire( pin);
+                    amount = calculateLenghtWire( pin, "cable");
 
                     // 1. пункт 33 доп. требований
                     double pinLT = amount + tolerance;
@@ -1017,7 +1017,7 @@ namespace E3_WGM
             }
         }
 
-        private double calculateLenghtWire(e3Pin pin)
+        private double calculateLenghtWire(e3Pin pin, string typePin)
         {
             double amount = pin.GetLength(); 
             if (amount == 0)
@@ -1037,7 +1037,7 @@ namespace E3_WGM
 
             // проверяем входит ли провод в витую пару . Тут это надо ?
             int bundleId = bundle.SetId(pin.GetId());
-            if (bundleId != 0 && bundle.IsTwisted() == 1)
+            if (bundleId != 0 && bundle.IsTwisted() == 1 && typePin.Equals("core"))
             {
                 amount = amount * 1.3;
             }

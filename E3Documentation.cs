@@ -253,36 +253,6 @@ namespace E3_WGM
             // Я это убрал   updateAttribute( job);
         }
 
-        private void updateAttribute( e3Job job)
-        {
-            e3Sheet sheet = job.CreateSheetObject();
-            foreach (KeyValuePair<int, object> sheetId in dSheetIds)
-            {
-                if (sheetId.Key == 0)
-                {
-                    continue;
-                }
-                sheet.SetId((int)sheetId.Value);
-                sheet.SetAttributeValue("WCH_id", oidMaster);
-                sheet.SetAttributeValue("docname", this.number);
-                sheet.SetAttributeValue("doccode", "");
-                sheet.SetAttributeValue(".DOCUMENT_TYPE", this.ATR_DOC_TYPE);
-
-                dynamic sTextIds = null;
-                int nTextIds = sheet.GetTextIds(ref sTextIds);
-                e3Text text = job.CreateTextObject();
-                for (int j = 1; j <= nTextIds; j++)
-                {
-                    text.SetId(sTextIds[j]);
-                    switch (text.GetType())
-                    {
-                        case 507:
-                            text.SetText(this.name);
-                            break;
-                    }
-                }
-            }
-        }
 
         internal object[] getDataForRow()
         {

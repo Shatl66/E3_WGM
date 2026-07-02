@@ -89,6 +89,11 @@ namespace E3_WGM
                     errorMessages.Add($"У {number} значение атрибута oidMaster не совпадает с Windchill");
                 //return;
             }
+            else if( !this.name.Equals(asmWch.name))
+            {
+                if (!errorMessages.Contains($"Наименование СЧ {number} в Windchill и в Е3.series не совпадает"))
+                    errorMessages.Add($"Наименование СЧ {number} в Windchill и в Е3.series не совпадает");
+            }
 
             update(asmWch);
             updateUsages(asmWch, errorMessages);
@@ -395,12 +400,12 @@ namespace E3_WGM
 
                         if (!prjRestrict.Equals("Без ограничений"))
                         {
-                            if ( (prjRestrict.Equals("20") & !wchRestrict.Equals("20")) || (prjRestrict.Equals("30") & !wchRestrict.Equals("30")) )
+                            if ( !prjRestrict.Equals( wchRestrict) )
                             {
                                 String nameR;
                                 E3WGMForm.UtilsInstance.restrictNames.TryGetValue(prjRestrict, out nameR);
-                                if (!errorMessages.Contains($"{matchingUsageFromWch.number} {part.name} не входит в ограничительный перечень {nameR}"))
-                                    errorMessages.Add($"{matchingUsageFromWch.number} {part.name} не входит в ограничительный перечень {nameR}");
+                                if (!errorMessages.Contains($"{matchingUsageFromWch.number} {part.name} не входит в ограничительный перечень {prjRestrict} {nameR}"))
+                                    errorMessages.Add($"{matchingUsageFromWch.number} {part.name} не входит в ограничительный перечень {prjRestrict} {nameR}");
                             }
                         }
 
