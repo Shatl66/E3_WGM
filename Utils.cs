@@ -237,12 +237,15 @@ namespace E3_WGM
             e3Symbol symbol = job.CreateSymbolObject();
             e3NetSegment netSegment = job.CreateNetSegmentObject();
             e3Pin pin = job.CreatePinObject();
+            
             e3Device dev = job.CreateDeviceObject(); // Это Изделие и оно является экземпляром Компонента БД Е3 в текущем проекте Е3
+            e3Device devAssembly = job.CreateDeviceObject();
+            
             e3Component comp = job.CreateComponentObject(); // Компонент это объект в БД
             e3ConnectLine e3ConnectLine = job.CreateConnectLineObject();
 
             int symbolId = 0;
-            int devId = 0;
+            int devId = 0, devAssembliId = 0;
             int netSegmentId = 0;
             int pinId = 0;
 
@@ -277,6 +280,16 @@ namespace E3_WGM
                     }
                     else
                     {
+                        // Проверяем не является ли изделие частью Е3 сборки
+                        if (dev.IsAssemblyPart() == 1)
+                        {
+                            devAssembliId = dev.GetAssemblyId();
+                            if (devAssembliId > 0)
+                            {
+                                devAssembly.SetId(devAssembliId);
+                                ProcessDevice(devAssembly);
+                            }
+                        }
                         ProcessDevice(dev);
                     }                    
                 }
@@ -324,6 +337,17 @@ namespace E3_WGM
 
                         if(dev.IsCable() == 1 & dev.IsOverbraid() == 0) // отбросили искуственный Кабель "Провода", где dev.IsOverbraid() тоже 1
                         {
+                            if (dev.IsAssemblyPart() == 1)
+                            {
+                                devAssembliId = dev.GetAssemblyId();
+                                if( devAssembliId > 0 )
+                                {
+                                    devAssembly.SetId(devAssembliId);
+                                    ProcessDevice(devAssembly);
+                                }
+                            }
+
+
                             ProcessCable(dev, pin, tolerance, netSegmentId); // обрабатываем кабель
                             listWireAndDevIds.Add(devId);
                         }
@@ -477,25 +501,31 @@ namespace E3_WGM
             {
                 E3Part part = null;
                 Boolean incrAmount = true;
-                Boolean isFoundInPartsInIDs = false;
+                Boolean isFoundInPartsInID = false;
+                Boolean isPartOfAssembly = false;
 
                 // ИЗДЕЛИЕ с RS "Отсутствует", не КОМПОНЕНТА ! Добавляем в Parts ! А в показе в WGM и передаче в Windchill будем исключать такие СЧ !!!
                 String currentDevRS = dev.GetAttributeValue(AttrsName.getAttrsName("atrBomRs"));
 
+                // Проверяем повторно не является ли изделие частью Е3 сборки
+                if (dev.IsAssemblyPart() == 1)
+                {
+                    isPartOfAssembly = true;
+                }
 
                 // ищем сначала в кэше
                 part = (E3Part)umens_e3project.Parts.Find(x => (x is E3Part) && (x as E3Part).ID == comp.GetId()); //TODO ВНИМАНИЕ в Parts в ID Андрей заносит ID КОМПОНЕНТА, т.е. ID из БД !!!
 
                 if ( part == null)
                 {
-                    isFoundInPartsInIDs = false;
+                    isFoundInPartsInID = false;
 
                     part = new E3Part(comp);
                     part.IDs.Add(dev.GetId());
                     
-                    if ( currentDevRS.Equals(BomRSValues.getBomRSValue((int)BomRSEnum.NO)))
+                    if ( currentDevRS.Equals(BomRSValues.getBomRSValue((int)BomRSEnum.NO)) || isPartOfAssembly == true)
                     {
-                        Console.WriteLine(part.number + " RS Отсутствует !");
+                        Console.WriteLine(part.number + " RS Отсутствует или часть сборки !");
                         part.isForBOM = false;
                         incrAmount = false;
                     }
@@ -506,16 +536,16 @@ namespace E3_WGM
                 {
                     if (!part.IDs.Contains(dev.GetId()))
                     {
-                        isFoundInPartsInIDs = false;
+                        isFoundInPartsInID = false;
                         part.IDs.Add(dev.GetId());
                     }
                     else
                     {
-                        isFoundInPartsInIDs = true;
+                        isFoundInPartsInID = true;
                     }
 
                     
-                    if( !currentDevRS.Equals(BomRSValues.getBomRSValue((int)BomRSEnum.NO))) // т.е. RS НЕ равен "Отсутствует"
+                    if( !currentDevRS.Equals(BomRSValues.getBomRSValue((int)BomRSEnum.NO)) & isPartOfAssembly == false) // isPartOfAssembly == false - на СБ чертеже используются части нескольких одинаковых сборок
                     {
                         part.isForBOM = true; // первое такое изделие встретившееся на СБ чертеже и попавшее в Parts, возможно было isForBOM = false. А теперь его всеже нужно показывать в ЭСИ
                     }
@@ -529,7 +559,7 @@ namespace E3_WGM
                 E3PartUsage usage = assemblyForPartsFromShemas.AddUsage(dev, part, out deltaAmount, incrAmount);
                 usage.isForBOM = part.isForBOM; // если СЧ все же показывать (смотри коммент чуть выше), то это же значение нужно задать и тут
 
-                if (isFoundInPartsInIDs == false)
+                if (isFoundInPartsInID == false)
                 {
                     AddReplacements(dev, usage);
                     AddAdditionalParts(dev, assemblyForPartsFromShemas, deltaAmount);
@@ -968,6 +998,14 @@ namespace E3_WGM
                 E3Cable cable = GetOrCreateCable( devCable); // при создании cable закомментировал занесение в него devId
                 E3PartUsage usage = assemblyForPartsFromShemas.AddOrGetUsage(pin, cable);
 
+                // Проверяем повторно не является ли изделие частью Е3 сборки
+                if (devCable.IsAssemblyPart() == 1)
+                {
+                    cable.isForBOM = false;
+                    usage.isForBOM = false;
+                }
+
+
                 // 1. Проверяем обработали ли мы уже эту жилу у нашего кабеля
                 if (!cable.IDs.Contains( pin.GetId())) 
                 {                                        
@@ -1035,11 +1073,22 @@ namespace E3_WGM
 
             amount = amount / 1000;
 
-            // проверяем входит ли провод в витую пару . Тут это надо ?
-            int bundleId = bundle.SetId(pin.GetId());
-            if (bundleId != 0 && bundle.IsTwisted() == 1 && typePin.Equals("core"))
+            // Для провода проверяем входит ли он в витую пару. Может быть несколько скруток
+            if (typePin.Equals("core"))
             {
-                amount = amount * 1.3;
+                int bundleId = bundle.SetId(pin.GetId());
+
+                while (bundleId > 0)
+                {
+                    bundleId = bundle.SetId( bundleId);
+
+                    if (bundle.IsTwisted() == 1)
+                    {
+                        amount = amount * 1.3;
+                    }
+
+                    bundleId = bundle.GetParentBundleId(); // находит на 1 родителя больше - это системный root, в интерфейсе Е3 он не отображается.
+                }
             }
 
             return amount;
@@ -1467,6 +1516,27 @@ namespace E3_WGM
 
                 numberPart = parentAssembly.number;
 
+                docType = structureNode.GetName();
+                
+                if (!typeDocuments.ContainsKey(docType)) // всякие неожиданные "Таблица", "Другие листы"
+                    return;
+
+                // Проверка КК на то, что Тип документа соответствует Шифру документа
+                calculatedTypeSuff = calcDocTypeSuffix(docType);
+                docTypeSuff = structureNode.GetAttributeValue(AttrsName.getAttrsName("docTypeSuff"));
+                if (String.IsNullOrEmpty(calculatedTypeSuff) || !calculatedTypeSuff.Equals(docTypeSuff))
+                {
+                    if (!errorMessages.Contains($"{numberPart} {docType} 'Шифр документа' {docTypeSuff} не заполнен или не соответствует 'Виду документа'"))
+                    {
+                        errorMessages.Add($"{numberPart} {docType} 'Шифр документа' {docTypeSuff} не заполнен или не соответствует 'Виду документа'");
+                    }
+
+                }
+
+                docNumber = numberPart + docTypeSuff; // именно без пробела.
+
+
+
                 dynamic sAllSheetIds = null;
                 int nAllSheet = structureNode.GetSheetIds(ref sAllSheetIds);
 
@@ -1474,28 +1544,8 @@ namespace E3_WGM
                 {
                     sheet.SetId(sAllSheetIds[i]); // sheet.IsEmbedded() == 1 это листы области чертежа внутри формбоард
 
-                    //  Все значения должны быть заданы в свойствах листа !!! иначе выдавать ошибку !
                     if (sheet.IsEmbedded() == 0)
                     {
-                        docType = sheet.GetAttributeValue(AttrsName.getAttrsName("docType"));
-                        docType = docType.Replace("\r\n", "");
-
-
-                        // Проверка КК на то, что в параметрах листа Тип документа соответствует Шифру документа
-                        calculatedTypeSuff = calcDocTypeSuffix(docType, sheet);
-                        docTypeSuff = sheet.GetAttributeValue(AttrsName.getAttrsName("docTypeSuff")); 
-                        if( String.IsNullOrEmpty(calculatedTypeSuff) || !calculatedTypeSuff.Equals(docTypeSuff))
-                        {
-                            if (!errorMessages.Contains($"{numberPart} {docType} 'Шифр документа' не заполнен или не соответствует 'Виду документа'"))
-                            {
-                                errorMessages.Add($"{numberPart} {docType} 'Шифр документа' не заполнен или не соответствует 'Виду документа'");
-                            }
-
-                        }
-
-
-
-                        docNumber = numberPart + docTypeSuff; // именно без пробела.                        
                         docFormat = sheet.GetAttributeValue(AttrsName.getAttrsName("docFormat"));
                         docFormat = docFormat.Replace("А", "A"); // на всякий случай русскую "А" меняем на английскую
                         docFormat = docFormat.Replace("х", "x"); // на всякий случай
@@ -1527,7 +1577,7 @@ namespace E3_WGM
         /// <param name="sheet"></param>
         /// <returns></returns>
         /// <exception cref="NotImplementedException"></exception>
-        private string calcDocTypeSuffix( string docType, e3Sheet sheet)
+        private string calcDocTypeSuffix( string docType)
         {
             String docSuff = "";
             typeDocuments.TryGetValue( docType, out docSuff);

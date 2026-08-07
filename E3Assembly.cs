@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection.Emit;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
 using System.Security.Cryptography;
@@ -441,11 +442,14 @@ namespace E3_WGM
         private void updateSumPosInUsages(e3Job job)
         {
             e3Device dev = job.CreateDeviceObject();
+            e3Device devAssembly = job.CreateDeviceObject();
             int devLineNumber = 0;
             String tempLineNumber;
             bool necesseryValue = false;
             List<int> listReplacementsAddPart; // список для взаимозамен в 150% BOM
             String currentDevRS;
+            int devAssembliId = 0;
+            E3PartUsage assemblyUsage = null;
 
 
             // 1. вычисляем данные для суммарной позиции
@@ -480,6 +484,16 @@ namespace E3_WGM
                         devLineNumber = currentE3PartUsage.lineNumber;
                         lineNumbers.Add(devLineNumber); // Запомнили Позицию самого Изделия
                     }
+
+                    // Проверяем не часть ли это сборки
+                    if (dev.IsAssemblyPart() == 1)
+                    {
+                        devAssembliId = dev.GetAssemblyId();
+                        devAssembly.SetId(devAssembliId);
+                        assemblyUsage = _usages.Find(x => x.number == devAssembly.GetAttributeValue("WCH_number") && x.isForBOM == true); // "WCH Обозначение / Код ОКП"
+                        lineNumbers.Add(assemblyUsage.lineNumber); // Части сборки присваиваем Позицию сборки
+                    }
+
 
                     foreach (E3PartUsage usageWithParent in _usages) // Ищем E3PartUsage Дополнительных частей у которых Parent-ом является изделие представленное itemId
                     {
@@ -538,8 +552,7 @@ namespace E3_WGM
         /// </summary>
         /// <param name="job"></param>
         private void updateSumPosInUsagesForNetSegments(e3Job job)
-        {
-            e3Device dev = job.CreateDeviceObject();
+        {            
             e3Pin pin = job.CreatePinObject();
             e3NetSegment netSegment = job.CreateNetSegmentObject();
             int devLineNumber = 0;
@@ -548,6 +561,11 @@ namespace E3_WGM
 
             List<int> lineNumbers = null;
             var dictionaryLineNumbersOnSegments = new Dictionary<int, List<int>>(); // мап Id сегментов - перечень Номеров позиций для каждого сегмента
+
+            int devAssembliId = 0;
+            E3PartUsage assemblyUsage = null;
+            e3Device dev = job.CreateDeviceObject();
+            e3Device devAssembly = job.CreateDeviceObject();
 
 
             // 1. вычисляем данные для суммарной позиции сегмента
@@ -594,6 +612,17 @@ namespace E3_WGM
                             if (!lineNumbers.Contains(devLineNumber))
                                 lineNumbers.Add(devLineNumber); // Запомнили Позицию самого Изделия
                         }
+
+                        // Проверяем не часть ли это сборки
+                        int devId = dev.SetId( itemId);
+                        if (dev.IsAssemblyPart() == 1)
+                        {
+                            devAssembliId = dev.GetAssemblyId();
+                            devAssembly.SetId(devAssembliId);
+                            assemblyUsage = _usages.Find(x => x.number == devAssembly.GetAttributeValue("WCH_number") && x.isForBOM == true); // "WCH Обозначение / Код ОКП"
+                            lineNumbers.Add(assemblyUsage.lineNumber); // Части сборки присваиваем Позицию сборки
+                        }
+
 
                         foreach (E3PartUsage usageWithParent in _usages) //Протестировать!!!  Ищем E3PartUsage Дополнительных частей у которых Parent-ом является изделие представленное itemId
                         {

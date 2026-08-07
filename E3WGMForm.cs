@@ -100,7 +100,7 @@ namespace E3_WGM
             restrictNames.Add("10", "НКУ \"МиАС\"");
             restrictNames.Add("20", "НКУ \"СКС\"");
             restrictNames.Add("30", "НКУ \"Космос\"");
-            restrictNames.Add("40", "НКУ \"Композит\"");
+            restrictNames.Add("40", "КПУ \"Композит\"");
             restrictNames.Add("70", "НКУ \"АС\"");
             _Utils.restrictNames = restrictNames;
 
