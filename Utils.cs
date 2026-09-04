@@ -34,6 +34,7 @@ namespace E3_WGM
         public E3Assembly umens_e3project;
         public List<string> errorMessages = new List<string>();
         public List<string> numberPartsForE3ProjectDocument = new List<string>(); // с этими СЧ в Windchill будем связывать WTDocument проекта Е3
+        public List<int> casheAssembly = new List<int>(); // ID обработанных сборок из БД Е3
 
 
         public string tempPathForDoc { get; internal set; }
@@ -50,6 +51,7 @@ namespace E3_WGM
         public Dictionary<int, List<int>> dictionaryIdDevsOnSegment = new Dictionary<int, List<int>>(); // пары: ID сегмента - ID изделий лежащих/проходящих на/через сегмент
 
         public Dictionary<string, string> restrictNames = null; // устанавливается из E3WGMForms.cs
+       
         public Utils()
         {
             //ConnectToE3Series();
@@ -283,14 +285,21 @@ namespace E3_WGM
                         // Проверяем не является ли изделие частью Е3 сборки
                         if (dev.IsAssemblyPart() == 1)
                         {
+                            Console.WriteLine(dev.GetId() + "\t" + dev.GetName());
                             devAssembliId = dev.GetAssemblyId();
                             if (devAssembliId > 0)
                             {
-                                devAssembly.SetId(devAssembliId);
-                                ProcessDevice(devAssembly);
+                                if ( !casheAssembly.Contains(devAssembliId))
+                                {
+                                    devAssembly.SetId(devAssembliId);
+                                    ProcessDevice(devAssembly);
+
+                                    casheAssembly.Add(devAssembliId);
+                                }
                             }
                         }
-                        ProcessDevice(dev);
+
+                        ProcessDevice(dev); // обрабатываем dev даже если он является частью сборки, т.к. выноску с номером позиции нужно вывести !
                     }                    
                 }
                 catch (Exception ex)
@@ -333,27 +342,35 @@ namespace E3_WGM
                         pinId = sAllCoreIds[j];
                         pin.SetId(pinId); // pin это провод (жила)                
 
-                        devId = dev.SetId( pinId); // где dev это Кабель к которому принадлежит жила.
+                        devId = dev.SetId( pinId); // где dev это Кабель к которому принадлежит pin.
 
                         if(dev.IsCable() == 1 & dev.IsOverbraid() == 0) // отбросили искуственный Кабель "Провода", где dev.IsOverbraid() тоже 1
                         {
                             if (dev.IsAssemblyPart() == 1)
                             {
+                                Console.WriteLine(dev.GetId() + "\t" + dev.GetName() + "\t" + pin.GetId() + "\t"  + pin.GetName());
                                 devAssembliId = dev.GetAssemblyId();
                                 if( devAssembliId > 0 )
                                 {
-                                    devAssembly.SetId(devAssembliId);
-                                    ProcessDevice(devAssembly);
+                                    if (!casheAssembly.Contains(devAssembliId))
+                                    {
+                                        devAssembly.SetId(devAssembliId);
+                                        ProcessDevice(devAssembly);
+
+                                        casheAssembly.Add(devAssembliId);
+                                    }
                                 }
                             }
 
 
                             ProcessCable(dev, pin, tolerance, netSegmentId); // обрабатываем кабель
-                            listWireAndDevIds.Add(devId);
+                            putInListWireAndDevIds( listWireAndDevIds, devId);
+                            putInListWireAndDevIds( listWireAndDevIds, pinId);
                         }
                         else {
+                            Console.WriteLine(pin.GetId() + "\t" + pin.GetName());
                             ProcessCore(pin, tolerance, netSegmentId); // обрабатываем одиночный провод.
-                            listWireAndDevIds.Add(pinId);
+                            putInListWireAndDevIds(listWireAndDevIds, pinId);
                         }
 
                     }
@@ -413,7 +430,7 @@ namespace E3_WGM
                                 dictionarySymbolsOnSegments.Add(protectionSymbolId, comp);                                                                
                             }
 
-                      listWireAndDevIds.Add(dev.GetId());
+                        putInListWireAndDevIds( listWireAndDevIds, dev.GetId());
 
                             usage = assemblyForPartsFromShemas.Usages.Find(x => x.number == part.number);
                             usage.Tolerance += tolerance;
@@ -439,7 +456,11 @@ namespace E3_WGM
         }
 
 
-
+        private void putInListWireAndDevIds( List<int> listWireAndDevIds, int id)
+        {
+            if(! listWireAndDevIds.Contains( id))
+                listWireAndDevIds.Add( id);
+        }
 
 
 
@@ -1134,9 +1155,18 @@ namespace E3_WGM
         /// <summary>
         /// Получает или создает наш объект E3Cable для кабеля Е3.
         /// </summary>
-        private E3Cable GetOrCreateCable(e3Device dev)
+        private E3Cable GetOrCreateCable(e3Device devCable)
         {
-            String number = dev.GetAttributeValue("WCH_number");
+            e3Component comp = job.CreateComponentObject();
+
+            String number = devCable.GetAttributeValue("WCH_number");
+            if (String.IsNullOrEmpty(number)) // это части изделия Сборка Е3
+            {                 
+                comp.SetId(devCable.GetId());                
+                Console.WriteLine(devCable.GetId() + "\t" + devCable.GetName() + "\t" + devCable.GetLocation() + "\t" + comp.GetId() + "\t " + comp.GetName());
+
+                number = comp.GetId().ToString();
+            }
 
             try
             {
@@ -1145,7 +1175,7 @@ namespace E3_WGM
                 if (!umens_e3project.Parts.Exists(x => (x is E3Cable) &&
                                        ((x as E3Cable).number == number)))                                       
                 {
-                    cable = new E3Cable( dev);
+                    cable = new E3Cable( devCable, comp);
                     umens_e3project.Parts.Add(cable);
                     // "Кабель добавлен"
                 }

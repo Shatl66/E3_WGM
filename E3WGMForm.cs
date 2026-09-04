@@ -130,6 +130,7 @@ namespace E3_WGM
             _Utils.numberPartsForE3ProjectDocument = new List<string>();
             _Utils.getRestrictivProject();
             _Utils.dictionaryIdDevsOnSegment = new Dictionary<int, List<int>>();
+            _Utils.casheAssembly = new List<int>();
 
 
             if (_Utils.FindAllWTPartsFromSelectedFolder())

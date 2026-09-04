@@ -144,8 +144,6 @@ namespace E3_WGM
             set { _restrict = value; }
         }
 
-
-
         public int idComp { get; set; }
 
         private double _tolerance = 0;

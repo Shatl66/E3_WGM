@@ -73,38 +73,30 @@ namespace E3_WGM
         /// Создание кабеля
         /// </summary>
         /// <param name="dev"></param>
-        public E3Cable(e3Device dev)
+        public E3Cable(e3Device dev, e3Component comp)
         {
-            //IDs.Add(dev.GetId());
+            String numberDev = dev.GetAttributeValue("WCH_number");
+            String nameDev = dev.GetAttributeValue("WCH_name");
 
-            // ATR_E3_ENTRY - TODO Что сюда выводить из атрибутов компонента или изделия ?
-            // ATR_E3_WIRETYPE - TODO Что сюда выводить из атрибутов компонента или изделия ?
+            // Если dev это часть изделия Сборка Е3
+            if (String.IsNullOrEmpty(numberDev)) 
+            {
+                numberDev = comp.GetId().ToString();
+            }
+            
+            if (String.IsNullOrEmpty(nameDev))
+            {
+                nameDev = comp.GetAttributeValue("Description"); // так же у E3Part
+            }
+
+
+
             oidMaster = dev.GetAttributeValue("WCH_id");
-            number = dev.GetAttributeValue("WCH_number");
-            name = dev.GetAttributeValue("WCH_name");
+            number = numberDev;
+            name = nameDev;
             ATR_BOM_RS = dev.GetAttributeValue(AttrsName.getAttrsName("atrBomRs"));
         }
 
-
-        public E3Cable(DataGridViewRow row)
-        {
-            oidMaster = (string)row.Cells["oidMaster"].Value;
-            // IDs = ((String)row.Cells["ID"].Value).Split(',').ToList;
-            number = (string)row.Cells["number"].Value;
-            name = (string)row.Cells["name"].Value;
-            if (name == null || name == "")
-            {
-                throw new Exception("ОШИБКА: Наименование не заполнено.");
-            }
-            ATR_BOM_RS = (string)row.Cells["ATR_BOM_RS"].Value;
-            if (ATR_BOM_RS == null || ATR_BOM_RS == "")
-            {
-                throw new Exception("ОШИБКА: Раздел спецификации не заполнен.");
-            }
-            ATR_E3_ENTRY = (string)row.Cells["ATR_E3_ENTRY"].Value;
-            ATR_E3_WIRETYPE = (string)row.Cells["ATR_E3_WIRETYPE"].Value;
-            // ATR_E3_CLASS = (string)row.Cells["ATR_E3_CLASS"].Value;
-        }
 
         internal void merge(E3Cable wchE3Cable, List<string> errorMessages, e3Job job)
         {
@@ -143,41 +135,6 @@ namespace E3_WGM
                 }
             }
             */
-        }
-
-        internal void Refresh()
-        {
-
-            MemoryStream stream = new MemoryStream();
-            DataContractJsonSerializerSettings settings = new DataContractJsonSerializerSettings();
-            settings.UseSimpleDictionaryFormat = true;
-            DataContractJsonSerializer ser = new DataContractJsonSerializer(typeof(E3Cable), settings);
-            ser.WriteObject(stream, this);
-            stream.Position = 0;
-            StreamReader sr = new StreamReader(stream);
-            string jsonE3Cable = sr.ReadToEnd();
-            jsonE3Cable = "{\"__type\":\"E3Cable:#E3WGM\"," + jsonE3Cable.Substring(1);
-            string jsonE3CableFromWindchill = E3WGMForm.wchHTTPClient.getJSON(jsonE3Cable, "netmarkets/jsp/by/iba/e3/http/findE3Cable.jsp");
-            //string received = SocketClient.SendMessageFromSocket(SocketClient.ipString, 11000, 14, jsonE3Cable);
-            MemoryStream stream2 = new MemoryStream(Encoding.UTF8.GetBytes(jsonE3CableFromWindchill));
-            DataContractJsonSerializer ser2 = new DataContractJsonSerializer(typeof(E3Cable), settings);
-            E3Cable tempE3Cable = (E3Cable)ser2.ReadObject(stream2);
-            if (!String.IsNullOrEmpty(tempE3Cable.oidMaster))
-            {
-                this.merge(tempE3Cable);
-            }
-        }
-
-        internal object[] getDataForRow()
-        {
-            return new Object[] {oidMaster,
-                               //     IDs.ToString(),
-                                    number,
-                                    name,
-                                    ATR_BOM_RS,
-                                    ATR_E3_ENTRY,
-                                    ATR_E3_WIRETYPE/*,
-                                    ATR_E3_CLASS*/ };
         }
 
     }

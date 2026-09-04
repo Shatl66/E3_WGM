@@ -61,10 +61,12 @@ namespace E3_WGM
         {
             oidMaster = comp.GetAttributeValue("WCH_id");
             number = comp.GetAttributeValue("WCH_number");
-            if (number == null || number == "")
+
+            if (String.IsNullOrEmpty(number))
             {
-                number = comp.GetAttributeValue("DOCnum");
+                number = comp.GetId().ToString();
             }
+            
             name = comp.GetAttributeValue("WCH_name");
             if (name == null || name == "")
             {

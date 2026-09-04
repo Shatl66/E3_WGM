@@ -547,8 +547,9 @@ namespace E3_WGM
         }
 
         /// <summary>
-        /// Заполняем атрибут "Суммарная позиция" у сегмента.
+        /// 1.Заполняем атрибут "Суммарная позиция" у сегмента.
         /// В интерфейсе Е3 чтобы его посмотреть нужно выделить сермент на СБ чертеже нажать ПКМ и выбрать "Параметры соединения"
+        /// 2. Заполняет атрибут "Позиция" у проводов
         /// </summary>
         /// <param name="job"></param>
         private void updateSumPosInUsagesForNetSegments(e3Job job)
@@ -621,6 +622,22 @@ namespace E3_WGM
                             devAssembly.SetId(devAssembliId);
                             assemblyUsage = _usages.Find(x => x.number == devAssembly.GetAttributeValue("WCH_number") && x.isForBOM == true); // "WCH Обозначение / Код ОКП"
                             lineNumbers.Add(assemblyUsage.lineNumber); // Части сборки присваиваем Позицию сборки
+
+                            checkIfCable(dev, assemblyUsage.lineNumber, job);
+                        }
+                        else
+                        {
+                            int value = job.GetItemType( devId);
+
+                            if ( value == 20 || value == 22) // 20 - Cable, 10 - Device, 22 - Wire or Core
+                            {
+                                pin.SetId(itemId);
+                                pin.SetAttributeValue("BOMpos", devLineNumber.ToString()); //TODO  добавить в attrsname.json
+                            }
+                            else
+                            {
+                                dev.SetAttributeValue("BOMpos", devLineNumber.ToString());
+                            }
                         }
 
 
@@ -651,6 +668,40 @@ namespace E3_WGM
             }
 
 
+        }
+
+        /// <summary>
+        /// Если dev это кабель и он часть сборки Е3, то найти его провода и заполнить их атрибут "Номер позиции"
+        /// </summary>
+        /// <param name="dev"></param>
+        /// <param name="lineNumber"></param>
+        /// <exception cref="NotImplementedException"></exception>
+        private void checkIfCable(e3Device dev, int lineNumber, e3Job job)
+        {
+            int value = job.GetItemType(dev.GetId());
+            if (value != 20)
+                return;
+
+            int pinId = 0;
+            e3Pin pin = job.CreatePinObject();
+
+            //dev.GetCoreIds - не подходит, дает - 0
+            dynamic pinIds = null;
+            int pinCount = dev.GetPinIds(ref pinIds);
+
+            for (int i = 1; i <= pinCount; i++)
+            {
+                pinId = pinIds[i];
+                pin.SetId(pinId);
+                
+                String name = pin.GetName();
+
+                //pin.SetAttributeValue("BOMpos", ""); // обнуляем все
+
+                pin.SetAttributeValue("BOMpos", lineNumber.ToString());
+            }
+
+            pin = null;
         }
     }
 }
