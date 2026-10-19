@@ -294,7 +294,8 @@ namespace E3_WGM
 
             if (E3WGMForm.UtilsInstance.app.GetLicensePermanent("E3pdf") == 1)
             {
-                if (job.ExportPDF(pdfPath, dSheetIds.Values.ToArray(), 0 + 16 + 4096, null) == 0)
+                int result = job.ExportPDF(pdfPath, dSheetIds.Values.ToArray(), 0 + 16 + 8192, null);
+                if (result == 0)
                 {
                     throw new Exception("ОШИБКА: Не удалось выполнить в E3 экспорт PDF документа " + number);
                 }

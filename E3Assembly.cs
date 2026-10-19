@@ -682,6 +682,8 @@ namespace E3_WGM
             if (value != 20)
                 return;
 
+            dev.SetAttributeValue("BOMpos", lineNumber.ToString());
+
             int pinId = 0;
             e3Pin pin = job.CreatePinObject();
 
