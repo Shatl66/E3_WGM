@@ -294,16 +294,49 @@ namespace E3_WGM
 
             if (E3WGMForm.UtilsInstance.app.GetLicensePermanent("E3pdf") == 1)
             {
-                int result = job.ExportPDF(pdfPath, dSheetIds.Values.ToArray(), 0 + 16 + 8192, null);
+                int result = RunTrigger("BeforeExportPDF");
+                if (result == -1)
+                {
+                    throw new Exception("ОШИБКА: Не удалось выполнить скрипт BeforeExportPDF" + number);
+                }
+
+                result = job.ExportPDF(pdfPath, dSheetIds.Values.ToArray(), 0 + 16 + 8192, null);
                 if (result == 0)
                 {
                     throw new Exception("ОШИБКА: Не удалось выполнить в E3 экспорт PDF документа " + number);
                 }
+
+                result = RunTrigger("AfterExportPDF");
+                if (result == -1)
+                {
+                    throw new Exception("ОШИБКА: Не удалось выполнить скрипт AfterExportPDF" + number);
+                }
+
             }
             else
             {
                 throw new Exception("В E3 отсутствует доступная лицензия на экспорт документа в формате PDF");
             }
+        }
+
+        private static int RunTrigger(string triggerName)
+        {
+            object fileNameObj = null;
+            int triggerIsActive = E3WGMForm.UtilsInstance.app.GetTrigger(triggerName, ref fileNameObj);
+            if (triggerIsActive == 0)
+            {
+                throw new Exception("ОШИБКА: триггер " + triggerName + " не активен");
+            }
+
+            string fileName = Convert.ToString(fileNameObj); // "C:\Users\%username%\AppData\Roaming\Zuken\Scripts\Script_print\BeforePrint.exe"
+            string expandedPathFile = Environment.ExpandEnvironmentVariables(fileName); // заменяет %username% на реальное имя
+            if (string.IsNullOrWhiteSpace(fileName) || !File.Exists(expandedPathFile))
+            {
+                throw new Exception("ОШИБКА: Имя файла триггера " + triggerName + " пустое, или файл отсутствует");
+            }
+
+            object arguments = Array.Empty<string>();
+            return E3WGMForm.UtilsInstance.app.Run(expandedPathFile, ref arguments);
         }
     }
 }
