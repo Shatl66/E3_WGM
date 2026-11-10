@@ -15,6 +15,8 @@ using static System.Net.Mime.MediaTypeNames;
 using System.IO.Ports;
 using System.Net.NetworkInformation;
 using System.Reflection.Emit;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
+using System.Drawing;
 
 namespace E3_WGM
 {
@@ -343,12 +345,15 @@ namespace E3_WGM
                         pin.SetId(pinId); // pin это провод (жила)                
 
                         devId = dev.SetId( pinId); // где dev это Кабель к которому принадлежит pin.
+                
+                int type = job.GetItemType( pinId); // 22 = Wire or Core, 10 = Device, 20 = Cable
+                Console.WriteLine("TEST DEV - " + dev.GetName() + ", pin - " + pin.GetName() + ", type - " + type);
 
-                        if(dev.IsCable() == 1 & dev.IsOverbraid() == 0) // отбросили искуственный Кабель "Провода", где dev.IsOverbraid() тоже 1
+                        if (dev.IsCable() == 1 & dev.IsOverbraid() == 0) // отбросили искуственный Кабель "Провода", где dev.IsOverbraid() тоже 1
                         {
                             if (dev.IsAssemblyPart() == 1)
                             {
-                                Console.WriteLine(dev.GetId() + "\t" + dev.GetName() + "\t" + pin.GetId() + "\t"  + pin.GetName());
+                                //Console.WriteLine(dev.GetId() + "\t" + dev.GetName() + "\t" + pin.GetId() + "\t"  + pin.GetName());
                                 devAssembliId = dev.GetAssemblyId();
                                 if( devAssembliId > 0 )
                                 {
@@ -909,6 +914,8 @@ namespace E3_WGM
                         //app.PutInfo(0, $" pinIzdelie {pinIzdelie.GetName()}    Имя провода {core.GetName()}", core.GetId());
                         devId = dev.SetId(coreId); // где dev это Кабель к которому принадлежит жила.
 
+                    int type = job.GetItemType( coreId); // 22 = Wire or Core, 10 = Device, 20 = Cable
+                    Console.WriteLine("TEST2 DEV - " + dev.GetName() + ", pin - " + core.GetName() + ", type - " + type);
 
                         if (dev.IsCable() == 1 & dev.IsOverbraid() == 0) // отбросили искуственный Кабель "Провода", где dev.IsOverbraid() тоже 1
                         {

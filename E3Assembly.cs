@@ -10,6 +10,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace E3_WGM
 {
@@ -435,111 +436,119 @@ namespace E3_WGM
         }
 
         /// <summary>
-        /// Для каждого Изделия входящего в нашу текущую Е3 сборку рассчитывает значение атрибута "Суммарная позиция".
-        /// т.е. в этот атрибут заносятся позиции самого Изделия + позиции всех Дополнительных частей указанных в этом Изделии.
-        /// Е3 "знает" об атрибуте "Суммарная позиция" и вынесет на СБ чертеж у Изделия одну общую выноску с несколькими полочками для позиций.
+        /// Для каждого изделия, жгута и провода входящего в нашу текущую Е3 сборку рассчитывает значение атрибутов "Позиция спецификации" и "Суммарная позиция".
+        /// в атрибут "Суммарная позиция" заносятся позиции самого Изделия + позиции всех Дополнительных частей указанных в этом Изделии.
+        /// У изделий, жгутов и проводов лежащих на сегментах атрибут "Суммарная позиция" в этом методе не заполняется.
         /// </summary>
         private void updateSumPosInUsages(e3Job job)
         {
             e3Device dev = job.CreateDeviceObject();
+            e3Pin pin = job.CreatePinObject();
             e3Device devAssembly = job.CreateDeviceObject();
             int devLineNumber = 0;
-            String tempLineNumber;
+            String sumLineNumber;
             bool necesseryValue = false;
+            bool isOnSegment = false;
             List<int> listReplacementsAddPart; // список для взаимозамен в 150% BOM
             String currentDevRS;
             int devAssembliId = 0;
             E3PartUsage assemblyUsage = null;
+            dynamic target = null;
 
 
-            // 1. вычисляем данные для суммарной позиции
+            // 1. вычисляем данные для Суммарной позиции и Позиции спецификации
             foreach (E3PartUsage currentE3PartUsage in _usages)
             {
-                //if (currentE3PartUsage.parentIDs.Count > 0 || currentE3PartUsage.netSegmentIds.Count > 0)
-                //    continue; // имеем дело с E3PartUsage Дополнительных частей (доп.части, замены, cavity) или изделиями лежащими на сегменте, а нам нужны Изделия непосредственно расположенные на СБ чертеже от которых будет строиться выноска с номером позиции/й
+                sumLineNumber = "";
+                devLineNumber = 0;
 
-                foreach (int itemId in currentE3PartUsage.IDs) // на СБ чертеже Изделие может встречаться несколько раз (разные Поз.обозначения) и могут быть с RS "Отсутствует"
+                foreach (int itemId in currentE3PartUsage.IDs) // на СБ чертеже Изделие может встречаться несколько раз (разные Поз.обозначения) и могут быть с RS "Отсутствует" и доп.части
                 {
-                    // сначала очищаем у всех изделий атрибут "суммарная позиция"
-                    dev.SetId(itemId);
-                    dev.SetAttributeValue(AttrsName.getAttrsName("lineNumber"), "");
+                    int type = job.GetItemType(itemId); // 22 = Wire or Core, 10 = Device, 20 = Cable
+                    bool isPin = type == 22;
+                    target = isPin ? (dynamic)pin : (dynamic)dev;
 
-                    if (currentE3PartUsage.parentIDs.Count > 0 || currentE3PartUsage.netSegmentIds.Count > 0)
-                        continue; // имеем дело с E3PartUsage Дополнительных частей (доп.части, замены, cavity) или изделиями лежащими на сегменте, а нам нужны Изделия непосредственно расположенные на СБ чертеже от которых будет строиться выноска с номером позиции/й
+                    target.SetId(itemId);
+                    Console.WriteLine($" Test {(isPin ? "pin" : "dev")} " + target.GetName());
 
+                    // сначала очищаем атрибуты Суммарная позиция и Позиция спецификации у каждого ID (это важно для каждого куска одного и того же провода)
+                    target.SetAttributeValue(AttrsName.getAttrsName("lineNumber"), "");
+                    target.SetAttributeValue("BOMpos", "");
 
-                    tempLineNumber = "";
-                    List<int> lineNumbers = new List<int>();
-                                                            
-                    currentDevRS = dev.GetAttributeValue(AttrsName.getAttrsName("atrBomRs"));
-
-                    // Придумка Пеленга о 150% BOM. Проверяем их признак, т.е. в ЭСИ будет несколько записей с 0 количеством и ЕИ "По необходимости"
-                    listReplacementsAddPart = new List<int>();
-                    necesseryValue = dev.GetAttributeValue("IfNecessary") == "1" ? true : false;
+                    if (currentE3PartUsage.parentIDs.Count > 0)
+                        continue; // имеем дело с E3PartUsage Дополнительных частей (доп.части, замены, cavity) 
 
 
-                    //if (currentE3PartUsage.isForBOM == true)
-                    if (!currentDevRS.Equals(BomRSValues.getBomRSValue((int)BomRSEnum.NO))) // т.е. у текущего изделия RS НЕ равен "Отсутствует"
+                    if (String.IsNullOrEmpty(sumLineNumber)) //Суммарная позиция и Позиция спецификации одинаковые для всех currentE3PartUsage.IDs
                     {
-                        devLineNumber = currentE3PartUsage.lineNumber;
-                        lineNumbers.Add(devLineNumber); // Запомнили Позицию самого Изделия
-                    }
+                        List<int> lineNumbers = new List<int>();
 
-                    // Проверяем не часть ли это сборки
-                    if (dev.IsAssemblyPart() == 1)
-                    {
-                        devAssembliId = dev.GetAssemblyId();
-                        devAssembly.SetId(devAssembliId);
-                        assemblyUsage = _usages.Find(x => x.number == devAssembly.GetAttributeValue("WCH_number") && x.isForBOM == true); // "WCH Обозначение / Код ОКП"
-                        lineNumbers.Add(assemblyUsage.lineNumber); // Части сборки присваиваем Позицию сборки
-                    }
+                        isOnSegment = currentE3PartUsage.netSegmentIds.Count > 0 ? true : false;
 
+                        currentDevRS = target.GetAttributeValue(AttrsName.getAttrsName("atrBomRs"));
 
-                    foreach (E3PartUsage usageWithParent in _usages) // Ищем E3PartUsage Дополнительных частей у которых Parent-ом является изделие представленное itemId
-                    {
-                        if (usageWithParent.parentIDs.Contains(itemId))
+                        // Придумка Пеленга о 150% BOM. Проверяем их признак, т.е. в ЭСИ будет несколько записей с 0 количеством и ЕИ "По необходимости"
+                        listReplacementsAddPart = new List<int>();
+                        necesseryValue = target.GetAttributeValue("IfNecessary") == "1" ? true : false;
+
+                        if (!currentDevRS.Equals(BomRSValues.getBomRSValue((int)BomRSEnum.NO))) // т.е. у текущего изделия RS НЕ равен "Отсутствует"
                         {
-                            if (necesseryValue == false) // у device обычные доп.части
+                            devLineNumber = currentE3PartUsage.lineNumber;
+                            target.SetAttributeValue("BOMpos", devLineNumber.ToString());
+                            lineNumbers.Add(devLineNumber); // Запомнили Позицию самого Изделия
+                        }
+
+                        if (type != 22)
+                        {
+                            // Проверяем не является ли текущее Изделие частью Изделия сборки Е3
+                            if (target.IsAssemblyPart() == 1)
                             {
-                                if (!lineNumbers.Contains(usageWithParent.lineNumber))
-                                {
-                                    lineNumbers.Add(usageWithParent.lineNumber); // Добавили Позицию Дополнительной части 
-                                }
-                            }
-                            else
-                            {
-                                listReplacementsAddPart.Add(usageWithParent.lineNumber); // накапливаем, чтобы потом сделать типа "15 или 16"
+                                devAssembliId = target.GetAssemblyId();
+                                devAssembly.SetId(devAssembliId);
+                                assemblyUsage = _usages.Find(x => x.number == devAssembly.GetAttributeValue("WCH_number") && x.isForBOM == true); // "WCH Обозначение / Код ОКП"
+                                devLineNumber = assemblyUsage.lineNumber;
+                                target.SetAttributeValue("BOMpos", devLineNumber.ToString()); // перезаписали
+                                lineNumbers.Add(devLineNumber); // Части сборки присваиваем Позицию сборки
                             }
                         }
-                    }
 
+                        foreach (E3PartUsage usageWithParent in _usages) // Ищем E3PartUsage Дополнительных частей у которых Parent-ом является изделие представленное itemId
+                        {
+                            if (usageWithParent.parentIDs.Contains(itemId))
+                            {
+                                if (necesseryValue == false) // у device обычные доп.части
+                                {
+                                    if (!lineNumbers.Contains(usageWithParent.lineNumber))
+                                    {
+                                        lineNumbers.Add(usageWithParent.lineNumber); // Добавили Позицию Дополнительной части 
+                                    }
+                                }
+                                else
+                                {
+                                    listReplacementsAddPart.Add(usageWithParent.lineNumber); // накапливаем, чтобы потом сделать типа "15 или 16"
+                                }
+                            }
+                        }
 
-                    // 2. Заносим данные в атрибуты
+                        if (necesseryValue == false)  // у device обычные доп.части
+                        {
+                            sumLineNumber = string.Join(" \r\n", lineNumbers.OrderBy(x => x)); // упорядочивает номера позиций по возрастанию, каждый номер должен располагаться строчкой ниже
+                        }
+                        else
+                        {
+                            sumLineNumber = string.Join(" или ", listReplacementsAddPart.OrderBy(x => x)); // Номера у самого Изделия нет, т.к. оно фэйковое и создано для 150% ЭСИ
+                        }
 
-                    if (necesseryValue == false)  // у device обычные доп.части
-                    {
-                        tempLineNumber = string.Join(" \r\n", lineNumbers.OrderBy(x => x)); // упорядочивает номера позиций по возрастанию и по правилу Е3, каждый номер должен располагаться строчкой ниже
+                        if (isOnSegment == false)
+                            target.SetAttributeValue(AttrsName.getAttrsName("lineNumber"), sumLineNumber); // В Е3 у "родительского" компонента будет выведена общая выноска с позициями 
+
                     }
                     else
                     {
-                        tempLineNumber = string.Join(" или ", listReplacementsAddPart.OrderBy(x => x)); // Номера у самого Изделия нет, т.к. оно фэйковое и создано для 150% ЭСИ
-                    }
+                        target.SetAttributeValue("BOMpos", devLineNumber.ToString());
 
-
-                    // переходим к Изделию у которого в атрибут "Суммарная позиция" и занесем рассчитанное значение.
-                    if (!String.IsNullOrEmpty(currentE3PartUsage.ATR_E3_WIRETYPE)) //TODO с таким не сталкивался, чтобы проводу назначали Доп.части
-                    {
-                        e3Pin pin = job.CreatePinObject();
-                        pin.SetId(itemId);
-                        pin.SetAttributeValue("BOMpos", devLineNumber.ToString()); //TODO это "Позиция спецификации". Надо ли вообще => добавить в attrsname.json
-                        pin.SetAttributeValue(AttrsName.getAttrsName("lineNumber"), tempLineNumber);
-                    }
-                    else
-                    {
-                        //e3Device dev = job.CreateDeviceObject();
-                        //dev.SetId(itemId);
-                        dev.SetAttributeValue("BOMpos", devLineNumber.ToString()); //TODO это "Позиция спецификации". Надо ли вообще => добавить в attrsname.json
-                        dev.SetAttributeValue(AttrsName.getAttrsName("lineNumber"), tempLineNumber); // В Е3 у "родительского" компонента будет выведена общая выноска с позициями 
+                        if (isOnSegment == false)
+                            target.SetAttributeValue(AttrsName.getAttrsName("lineNumber"), sumLineNumber); // В Е3 у "родительского" компонента будет выведена общая выноска с позициями 
                     }
                 }
             }
@@ -675,7 +684,6 @@ namespace E3_WGM
         /// </summary>
         /// <param name="dev"></param>
         /// <param name="lineNumber"></param>
-        /// <exception cref="NotImplementedException"></exception>
         private void checkIfCable(e3Device dev, int lineNumber, e3Job job)
         {
             int value = job.GetItemType(dev.GetId());
