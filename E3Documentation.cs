@@ -1,4 +1,6 @@
 ﻿using e3;
+using PdfSharp.Pdf.IO;
+using PdfSharp.Pdf;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -8,6 +10,7 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
+using PdfSharp;
 
 namespace E3_WGM
 {
@@ -305,6 +308,20 @@ namespace E3_WGM
                 {
                     throw new Exception("ОШИБКА: Не удалось выполнить в E3 экспорт PDF документа " + number);
                 }
+
+                // Start
+                // Решаем проблему неправильного заполнения Е3 поля Title в pdf файле. Записывается туда почему то номер проекта Е3 и это выводится в наименовании закладки в браузере при открытии файла прямо из Windchill
+                PdfSharpLicense.SetAgplLicense();
+                string tempPath = pdfPath + ".tmp";
+                PdfDocument document = PdfReader.Open(pdfPath, PdfDocumentOpenMode.Modify);
+                document.Info.Title = Path.GetFileNameWithoutExtension(pdfPath); // "9592.35.01.600СБ"
+                //document.UpdateXmpMetadata();
+                document.Save(tempPath);
+                document.Close();
+
+                File.Delete(pdfPath);
+                File.Move(tempPath, pdfPath);
+                // End
 
                 result = RunTrigger("AfterExportPDF");
                 if (result == -1)
