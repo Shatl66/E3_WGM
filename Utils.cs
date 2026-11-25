@@ -17,6 +17,8 @@ using System.Net.NetworkInformation;
 using System.Reflection.Emit;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 using System.Drawing;
+using PdfSharp.Pdf.IO;
+using PdfSharp.Pdf.Content;
 
 namespace E3_WGM
 {
@@ -1575,15 +1577,15 @@ namespace E3_WGM
 
 
                 dynamic sAllSheetIds = null;
-                int nAllSheet = structureNode.GetSheetIds(ref sAllSheetIds);
+                int nAllSheet = structureNode.GetSheetIds(ref sAllSheetIds);                
 
                 for (int i = 1; i <= nAllSheet; i++)
                 {
-                    sheet.SetId(sAllSheetIds[i]); // sheet.IsEmbedded() == 1 это листы области чертежа внутри формбоард
+                    sheet.SetId(sAllSheetIds[i]); // sheet.IsEmbedded() == 1 это листы области чертежа внутри формбоард                    
 
                     if (sheet.IsEmbedded() == 0)
                     {
-                        docFormat = sheet.GetAttributeValue(AttrsName.getAttrsName("docFormat"));
+                        docFormat = getFormatFromFormatka(); 
                         docFormat = docFormat.Replace("А", "A"); // на всякий случай русскую "А" меняем на английскую
                         docFormat = docFormat.Replace("х", "x"); // на всякий случай
 
@@ -1605,6 +1607,37 @@ namespace E3_WGM
                     doc.AddSheet( sheet, docFormat);
                 }
             }
+        }
+
+        /// <summary>
+        /// Ищем форматку и у нее берем атрибут "Формат листа"
+        /// Для этого есть простой метод API ( symbol.Load( sheet.GetFormat(), "1")) но он не работает :(
+        /// </summary>
+        /// <returns></returns>
+        private string getFormatFromFormatka()
+        {
+            string docFormat = "";
+            e3Symbol symbolFormatka = job.CreateSymbolObject();
+            string nameFormat = sheet.GetFormat();
+
+            dynamic sSimbolTypeIds = null;
+            int symbolTypeCount = job.GetSymbolTypeIds(ref sSimbolTypeIds);
+            int symbolId;
+            string symbolType;
+
+            for (int ii = 1; ii <= symbolTypeCount; ii++) //TODO закэшировать !
+            {
+                symbolId = sSimbolTypeIds[ii];
+                symbolFormatka.SetId(symbolId);
+
+                symbolType = symbolFormatka.GetType();
+                if (symbolType == nameFormat)
+                {
+                    docFormat = symbolFormatka.GetAttributeValue(AttrsName.getAttrsName("docFormat"));
+                }
+            }
+
+            return docFormat;
         }
 
         /// <summary>

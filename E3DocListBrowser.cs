@@ -67,9 +67,7 @@ namespace E3_WGM
                         {
                             if (row.Tag is E3Documentation doc) // проверили и сразу инициализировали doc
                             {
-                                // 1. создаем WTDocument в Windchill если его там еще нет
-                                if (String.IsNullOrEmpty(doc.oidMaster))
-                                {
+                                // 1. создаем WTDocument в Windchill если его там еще нет или редактируем атрибуты - если док. уже есть
                                     string jsonDocumentationFromWindchill = "";
 
                                     MemoryStream stream = new MemoryStream();
@@ -101,7 +99,7 @@ namespace E3_WGM
                                     doc.updateDoc(wchDoc);
 
                                     row.DefaultCellStyle.BackColor = Color.GreenYellow; // отметили, что документ в Wch уже есть
-                                }
+
 
                                 // 2.выгружаем документ из Е3 на локальный диск пользователя в TEMP папку WGM
                                 doc.ExportToPDF(job);
